@@ -228,7 +228,18 @@
             font-style: italic;
             color: #6b7280;
         }
+        /* Style for the Total Entries count display */
+        #current-patient-history > p:first-of-type {
+            font-style: normal;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
 
+        .pagination-controls {
+            text-align: center;
+            padding-top: 10px;
+        }
         .pagination-controls button {
             background-color: var(--primary-dark-blue);
             color: white;
@@ -237,6 +248,10 @@
             border-radius: 4px;
             margin: 5px;
             cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .pagination-controls button:hover:not(:disabled) {
+             background-color: #3b82f6;
         }
         .pagination-controls button:disabled {
             background-color: #6b7280;
@@ -331,7 +346,7 @@
 
                     <div class="form-group">
                         <!-- UPDATED: Input type is now datetime-local for native picker -->
-                        <label for="appointment-datetime" class="required">3. Appointment Date and Time</label>
+                        <label for="appointment-datetime" class="required">3. Appointment Day, Date, and Time</label>
                         <input type="datetime-local" id="appointment-datetime" name="appointmentDateTime" 
                                required 
                                title="Select a date and time using the calendar picker.">
@@ -366,6 +381,7 @@
                     Enter the 11-digit phone number in the form above to automatically search the patient's past booking history.
                 </p>
                 <div class="history-details" id="current-patient-history">
+                    <!-- History placeholder will show the total count or wait message -->
                     <p>Waiting for 11-digit Contact Number input...</p>
                     <ul class="history-entries">
                         <!-- History entries will be rendered here -->
@@ -436,8 +452,25 @@
         const appMainContent = document.getElementById('app-main-content');
         
         const contactInput = document.getElementById('contact-number');
-        const historyPlaceholder = document.querySelector('#current-patient-history p');
+        // Select the paragraph element to display status/count
+        const historyStatusElement = document.querySelector('#current-patient-history > p:first-of-type');
         const historyEntriesList = document.querySelector('.history-entries');
+
+        // Pagination settings (Changed to 4 per page)
+        const entriesPerPage = 4;
+        let currentHistoryPage = 1;
+        let currentHistoryData = [];
+
+
+        /**
+         * Extracts the date part (YYYY-MM-DD) from the ISO 8601 string (YYYY-MM-DDTHH:MM).
+         * @param {string} isoString The ISO 8601 string from datetime-local input.
+         * @returns {string} The date part (YYYY-MM-DD).
+         */
+        function getISODatePart(isoString) {
+            if (!isoString) return '';
+            return isoString.substring(0, 10);
+        }
 
         /**
          * Converts the ISO string (from datetime-local input) into the user-requested display format.
@@ -448,11 +481,12 @@
         function displayFormattedDate(isoString) {
             if (!isoString) return 'N/A';
             try {
+                // Parse date with the T as Z (UTC) to avoid local timezone shifts during comparison 
+                // However, since we are using date time local, we parse it directly.
                 const date = new Date(isoString);
                 if (isNaN(date.getTime())) return isoString; // Fallback if invalid date
                 
                 const dayOptions = { weekday: 'long' };
-                const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
                 const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
 
                 const dayName = date.toLocaleDateString('en-US', dayOptions);
@@ -507,7 +541,7 @@
                 alert(`Appointment for ${data.patientName} booked successfully!`);
                 form.reset();
                 // Reset history view
-                historyPlaceholder.textContent = 'History cleared, waiting for new 11-digit number...';
+                historyStatusElement.textContent = 'History cleared, waiting for new 11-digit number...';
                 historyEntriesList.innerHTML = '';
                 document.querySelector('.pagination-controls').innerHTML = '';
                 
@@ -533,7 +567,7 @@
                 year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' 
             });
 
-            // 1. Today's Appointments Listener
+            // --- 1. Today's Appointments Listener (FIXED LOGIC) ---
             const todaysQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
                 orderBy('createdAt', 'desc') // Order by creation time
@@ -543,20 +577,19 @@
                 todaysList.innerHTML = '';
                 let appointmentsToday = 0;
                 
-                // Get the current day and month string for checking 
-                // We use the full month name to match the displayFormattedDate output
-                const todayShort = new Date().toLocaleDateString('en-US', { month: 'long', day: '2-digit' });
+                // Get today's date in YYYY-MM-DD format (local time zone)
+                // Use the new Date() object and slice the ISO string to get just the date part.
+                const todayISODate = getISODatePart(new Date().toISOString()); 
 
                 snapshot.forEach((doc) => {
                     const appt = doc.data();
                     
-                    // Use the function to get the patient-friendly display format
-                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime);
+                    const appointmentISODate = getISODatePart(appt.appointmentDateTime);
 
-                    // Check if the appointment display string contains the current short date (e.g., "September 29")
-                    if (apptDateDisplay.includes(todayShort)) { 
+                    // CORRECT FILTER: Compare only the YYYY-MM-DD part
+                    if (appointmentISODate === todayISODate) { 
+                        const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime);
                         const listItem = document.createElement('li');
-                        // Use the formatted display
                         listItem.textContent = `${apptDateDisplay} - ${appt.patientName} (${appt.contactNumber})`;
                         todaysList.appendChild(listItem);
                         appointmentsToday++;
@@ -564,11 +597,11 @@
                 });
 
                 if (appointmentsToday === 0) {
-                    todaysList.innerHTML = '<li>No appointments found matching today\'s date (Real-time).</li>';
+                    todaysList.innerHTML = '<li>No appointments found scheduled for today. (Real-time)</li>';
                 }
             });
                 
-            // 2. All Patients History (Limited view)
+            // --- 2. All Patients History (Limited view) ---
             const allHistoryQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
                 orderBy('createdAt', 'desc'),
@@ -579,8 +612,10 @@
                 allHistoryList.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const appt = doc.data();
+                    // Booking timestamp is used for when the appointment was created
                     const bookingTimestamp = appt.createdAt ? dateFormatter.format(appt.createdAt.toDate()) : 'N/A';
-                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime); // Use the new display function
+                    // Appt date display is for the actual scheduled time
+                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime); 
                     
                     const listItem = document.createElement('li');
                     listItem.textContent = `Appt: ${apptDateDisplay} | Patient: ${appt.patientName} (${appt.contactNumber})`;
@@ -589,20 +624,25 @@
             });
         }
         
-        // Pagination logic remains the same
-        const entriesPerPage = 5;
-        let currentHistoryPage = 1;
-        let currentHistoryData = [];
-
+        // --- PAGINATION AND HISTORY RENDERING ---
+        
         function renderPatientHistory(history, contact) {
             currentHistoryData = history;
-            const totalPages = Math.ceil(currentHistoryData.length / entriesPerPage);
+            const totalEntries = currentHistoryData.length;
+            const totalPages = Math.ceil(totalEntries / entriesPerPage);
 
             const startIndex = (currentHistoryPage - 1) * entriesPerPage;
             const endIndex = startIndex + entriesPerPage;
 
             const entriesToShow = currentHistoryData.slice(startIndex, endIndex);
             historyEntriesList.innerHTML = '';
+
+            // Update the history status to show total count
+            historyStatusElement.textContent = `Found ${totalEntries} previous entr${totalEntries === 1 ? 'y' : 'ies'} for ${contact}.`;
+
+            if (totalEntries === 0) {
+                historyEntriesList.innerHTML = '';
+            }
 
             entriesToShow.forEach(item => {
                 const historyItem = document.createElement('li');
@@ -701,7 +741,7 @@
                     // Display initial messages
                     document.querySelector('#todays-appointments .appointment-list').innerHTML = '<li>Please log in to load real-time appointments.</li>';
                     document.querySelector('#all-patients-history .history-list').innerHTML = '<li>Please log in to load all history.</li>';
-                    historyPlaceholder.textContent = 'Waiting for login...';
+                    historyStatusElement.textContent = 'Waiting for login...';
                     historyEntriesList.innerHTML = '';
                     document.querySelector('.pagination-controls').innerHTML = '';
                 }
@@ -710,24 +750,27 @@
             // --- C. Link Form & Input Handlers ---
             form.addEventListener('submit', handleAppointmentSubmission);
 
-            // AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS (CRITICAL UX IMPROVEMENT)
+            // AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS 
             contactInput.addEventListener('input', (event) => {
                 const contactNumber = event.target.value;
                 
                 if (!auth.currentUser) {
-                    historyPlaceholder.textContent = 'Please log in to search history.';
+                    historyStatusElement.textContent = 'Please log in to search history.';
                     return;
                 }
 
                 if (contactNumber.length === 11 && /^\d{11}$/.test(contactNumber)) {
-                    historyPlaceholder.textContent = 'Searching database...';
+                    historyStatusElement.textContent = 'Searching database...';
+                    historyEntriesList.innerHTML = '';
+                    document.querySelector('.pagination-controls').innerHTML = '';
 
                     // 3. Current Patient History Listener
+                    // Note: We intentionally fetch more than 4 entries (up to 25) to enable client-side pagination.
                     const patientQuery = query(
                         collection(db, APPOINTMENTS_COLLECTION),
                         where('contactNumber', '==', contactNumber),
                         orderBy('createdAt', 'desc'),
-                        limit(25)
+                        limit(25) 
                     );
                     
                     onSnapshot(patientQuery, (snapshot) => {
@@ -737,17 +780,16 @@
                         }));
                         
                         if (historyData.length > 0) {
-                            historyPlaceholder.textContent = `Found ${historyData.length} previous entries.`;
                             currentHistoryPage = 1; // Reset to page 1 for new search
                             renderPatientHistory(historyData, contactNumber);
                         } else {
-                            historyPlaceholder.textContent = `No previous history found for ${contactNumber}.`;
+                            historyStatusElement.textContent = `No previous history found for ${contactNumber}.`;
                             historyEntriesList.innerHTML = '';
                             document.querySelector('.pagination-controls').innerHTML = '';
                         }
                     });
                 } else {
-                    historyPlaceholder.textContent = 'Enter a complete 11-digit number to search.';
+                    historyStatusElement.textContent = 'Enter a complete 11-digit number to search.';
                     historyEntriesList.innerHTML = '';
                     document.querySelector('.pagination-controls').innerHTML = '';
                 }
