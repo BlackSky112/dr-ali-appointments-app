@@ -265,7 +265,8 @@
             color: var(--text-dark);
             margin-bottom: 10px;
         }
-
+        
+        /* Pagination Controls - Shared style */
         .pagination-controls {
             text-align: center;
             padding-top: 10px;
@@ -393,31 +394,33 @@
                     </ul>
                 </section>
 
-                <!-- All Patients History Section (Conceptual/Limited View) -->
-                <section id="all-patients-history">
-                    <h3>Latest 10 Bookings (All Patients)</h3>
-                    <p>Displaying the latest appointments synced in real-time.</p>
-                    <ul class="history-list">
-                        <li>Please log in to load all history.</li>
+                <!-- Global Appointment History Section (Limited/Paginated View) -->
+                <section id="global-appointment-history">
+                    <h3>Global Appointment History (Latest 10 Created)</h3>
+                    <p>Displaying the 10 most recently created bookings (excluding today's appointments).</p>
+                    <ul class="history-list" id="global-history-entries">
+                        <li>Please log in to load history.</li>
                     </ul>
+                    <div class="pagination-controls" id="global-history-pagination">
+                        <!-- Global history pagination controls here -->
+                    </div>
                 </section>
 
             </div>
 
-            <!-- Right Side: Current Patient History Section (Looks Great Now!) -->
+            <!-- Right Side: Current Patient History Section -->
             <aside class="patient-history-sidebar">
                 <h3>Patient History Search</h3>
                 <p class="text-dark">
                     Enter the 11-digit phone number in the form above to automatically search the patient's past booking history.
                 </p>
                 <div class="history-details" id="current-patient-history">
-                    <!-- History placeholder will show the total count or wait message -->
-                    <p>Waiting for 11-digit Contact Number input...</p>
-                    <ul class="history-entries">
-                        <!-- History entries will be rendered here -->
+                    <p id="patient-history-status">Waiting for 11-digit Contact Number input...</p>
+                    <ul class="history-entries" id="patient-history-entries">
+                        <!-- Patient history entries will be rendered here -->
                     </ul>
-                    <div class="pagination-controls">
-                        <!-- Pagination controls here -->
+                    <div class="pagination-controls" id="patient-history-pagination">
+                        <!-- Patient history pagination controls here -->
                     </div>
                 </div>
             </aside>
@@ -441,12 +444,12 @@
             addDoc, 
             serverTimestamp, 
             query, 
-            where, 
             orderBy, 
             limit, 
             onSnapshot,
-            deleteDoc, // <<< Added for deletion
-            doc // <<< Added to reference a document for deletion
+            deleteDoc, 
+            doc,
+            where // Added where for patient search
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
         
         // Import Authentication functions
@@ -476,7 +479,7 @@
         const APPOINTMENTS_COLLECTION = 'appointments';
         
         // =============================================================
-        // DOM ELEMENTS AND HELPERS
+        // GLOBAL STATE AND DOM ELEMENTS
         // =============================================================
         const loginForm = document.getElementById('login-form');
         const logoutBtn = document.getElementById('logout-btn');
@@ -484,20 +487,36 @@
         const appMainContent = document.getElementById('app-main-content');
         
         const contactInput = document.getElementById('contact-number');
-        const historyStatusElement = document.querySelector('#current-patient-history > p:first-of-type');
-        const historyEntriesList = document.querySelector('.history-entries');
+        
+        // Patient History State & Elements
+        const patientHistoryStatusElement = document.getElementById('patient-history-status');
+        const patientHistoryEntriesList = document.getElementById('patient-history-entries');
+        const patientHistoryPagination = document.getElementById('patient-history-pagination');
+        const patientEntriesPerPage = 4;
+        let currentPatientHistoryPage = 1;
+        let currentPatientHistoryData = [];
 
-        // Pagination settings
-        const entriesPerPage = 4;
-        let currentHistoryPage = 1;
-        let currentHistoryData = [];
+        // Global History State & Elements
+        const globalHistoryEntriesList = document.getElementById('global-history-entries');
+        const globalHistoryPagination = document.getElementById('global-history-pagination');
+        const globalEntriesPerPage = 4; // Max 4 per page as requested
+        let globalHistoryPage = 1;
+        let globalHistoryData = [];
 
+        
+        // =============================================================
+        // HELPERS
+        // =============================================================
 
         /**
-         * Extracts the date part (YYYY-MM-DD) from the ISO 8601 string (YYYY-MM-DDTHH:MM).
+         * Extracts the date part (YYYY-MM-DD) from the ISO 8601 string.
          */
         function getISODatePart(isoString) {
             if (!isoString) return '';
+            // Handle Firestore timestamps which are not strings when first loaded
+            if (typeof isoString === 'object' && isoString.toDate) {
+                return new Date(isoString.toDate()).toISOString().substring(0, 10);
+            }
             return isoString.substring(0, 10);
         }
 
@@ -507,7 +526,14 @@
         function displayFormattedDate(isoString) {
             if (!isoString) return 'N/A';
             try {
-                const date = new Date(isoString);
+                // Ensure the input is a Date object, handling potential Firestore Timestamp
+                let date;
+                if (typeof isoString === 'object' && isoString.toDate) {
+                    date = isoString.toDate();
+                } else {
+                    date = new Date(isoString);
+                }
+
                 if (isNaN(date.getTime())) return isoString; 
                 
                 const dayOptions = { weekday: 'long' };
@@ -525,7 +551,6 @@
                 return isoString;
             }
         }
-
 
         // =============================================================
         // FIREBASE INTERACTION LOGIC
@@ -575,9 +600,11 @@
                 await addDoc(collection(db, APPOINTMENTS_COLLECTION), data);
                 console.log(`Appointment for ${data.patientName} booked successfully!`);
                 form.reset();
-                historyStatusElement.textContent = 'History cleared, waiting for new 11-digit number...';
-                historyEntriesList.innerHTML = '';
-                document.querySelector('.pagination-controls').innerHTML = '';
+                
+                // Reset patient history search area after successful booking
+                patientHistoryStatusElement.textContent = 'History cleared, waiting for new 11-digit number...';
+                patientHistoryEntriesList.innerHTML = '';
+                patientHistoryPagination.innerHTML = '';
                 
             } catch (error) {
                 console.error("Error writing document: ", error);
@@ -585,7 +612,134 @@
         }
         
         // =============================================================
-        // REAL-TIME DISPLAY & HISTORY FUNCTIONS
+        // PAGINATION & RENDERING FUNCTIONS (Reusable Structure)
+        // =============================================================
+
+        /**
+         * Renders the pagination controls for a given list.
+         * @param {number} totalPages - The total number of pages.
+         * @param {number} currentPage - The current page number (1-indexed).
+         * @param {HTMLElement} container - The DOM element to render controls into.
+         * @param {Function} changePageCallback - Function to call on page change.
+         */
+        function renderPaginationControls(totalPages, currentPage, container, changePageCallback) {
+            container.innerHTML = '';
+
+            if (totalPages > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.textContent = '« Prev';
+                prevBtn.disabled = currentPage === 1;
+                prevBtn.onclick = () => changePageCallback(currentPage - 1);
+
+                const pageInfo = document.createElement('span');
+                pageInfo.textContent = ` Page ${currentPage} of ${totalPages} `;
+                pageInfo.style.margin = '0 10px';
+
+                const nextBtn = document.createElement('button');
+                nextBtn.textContent = 'Next »';
+                nextBtn.disabled = currentPage === totalPages;
+                nextBtn.onclick = () => changePageCallback(currentPage + 1);
+
+                container.appendChild(prevBtn);
+                container.appendChild(pageInfo);
+                container.appendChild(nextBtn);
+            }
+        }
+
+        // --- GLOBAL HISTORY PAGINATION & RENDER ---
+        
+        function renderGlobalHistory() {
+            const totalEntries = globalHistoryData.length;
+            const totalPages = Math.ceil(totalEntries / globalEntriesPerPage);
+            
+            // Adjust page if necessary (e.g., if items were deleted)
+            if (globalHistoryPage > totalPages && totalPages > 0) {
+                globalHistoryPage = totalPages;
+            } else if (totalPages === 0) {
+                 globalHistoryPage = 1;
+            }
+
+            const startIndex = (globalHistoryPage - 1) * globalEntriesPerPage;
+            const endIndex = startIndex + globalEntriesPerPage;
+
+            const entriesToShow = globalHistoryData.slice(startIndex, endIndex);
+            globalHistoryEntriesList.innerHTML = '';
+
+            if (totalEntries === 0) {
+                globalHistoryEntriesList.innerHTML = '<li>No recent bookings found (excluding today).</li>';
+            }
+
+            entriesToShow.forEach(item => {
+                const apptDateDisplay = displayFormattedDate(item.appointmentDateTime); 
+                const listItem = document.createElement('li');
+                
+                // Add details and the delete button HTML
+                listItem.innerHTML = `
+                    <span>Appt: ${apptDateDisplay} | Patient: ${item.patientName} (${item.contactNumber})</span>
+                    <button class="delete-btn" data-id="${item.id}" data-name="${item.patientName}">Delete</button>
+                `;
+                globalHistoryEntriesList.appendChild(listItem);
+            });
+
+            // Set up pagination controls
+            renderPaginationControls(totalPages, globalHistoryPage, globalHistoryPagination, (newPage) => {
+                globalHistoryPage = newPage;
+                renderGlobalHistory();
+            });
+        }
+        
+        // --- PATIENT HISTORY PAGINATION & RENDER ---
+
+        function renderPatientHistory(contact) {
+            const totalEntries = currentPatientHistoryData.length;
+            const totalPages = Math.ceil(totalEntries / patientEntriesPerPage);
+
+            // Adjust page if necessary
+            if (currentPatientHistoryPage > totalPages && totalPages > 0) {
+                currentPatientHistoryPage = totalPages;
+            } else if (totalPages === 0) {
+                 currentPatientHistoryPage = 1;
+            }
+
+            const startIndex = (currentPatientHistoryPage - 1) * patientEntriesPerPage;
+            const endIndex = startIndex + patientEntriesPerPage;
+
+            const entriesToShow = currentPatientHistoryData.slice(startIndex, endIndex);
+            patientHistoryEntriesList.innerHTML = '';
+
+            // Update the history status to show total count
+            patientHistoryStatusElement.textContent = `Found ${totalEntries} previous entr${totalEntries === 1 ? 'y' : 'ies'} for ${contact}.`;
+
+            if (totalEntries === 0) {
+                patientHistoryEntriesList.innerHTML = '<li>No past appointments found for this contact number.</li>';
+                patientHistoryPagination.innerHTML = '';
+                return;
+            }
+
+            entriesToShow.forEach(item => {
+                const historyItem = document.createElement('li');
+                // Use .toDate() for Firestore Timestamp objects when displaying
+                const bookedDate = item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString() : 'N/A';
+
+                historyItem.innerHTML = `
+                    <span style="font-weight: 700; color: var(--primary-dark-blue);">
+                        ${displayFormattedDate(item.appointmentDateTime)}
+                    </span>
+                    <br>
+                    Booked On: ${bookedDate}
+                `;
+                patientHistoryEntriesList.appendChild(historyItem);
+            });
+
+            // Set up pagination controls
+            renderPaginationControls(totalPages, currentPatientHistoryPage, patientHistoryPagination, (newPage) => {
+                currentPatientHistoryPage = newPage;
+                renderPatientHistory(contact);
+            });
+        }
+        
+        // =============================================================
+        // REAL-TIME LISTENERS
         // =============================================================
         let listenersActive = false; // Flag to prevent duplicate listeners
         
@@ -594,35 +748,30 @@
             listenersActive = true; 
 
             const todaysList = document.querySelector('#todays-appointments .appointment-list');
-            const allHistoryList = document.querySelector('#all-patients-history .history-list');
-
-            const dateFormatter = new Intl.DateTimeFormat('en-US', { 
-                year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' 
-            });
-
-            // --- 1. Today's Appointments Listener ---
-            const todaysQuery = query(
+            const todayISODate = getISODatePart(new Date().toISOString()); 
+            
+            // Query all appointments ordered by creation time descending
+            const allAppointmentsQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
                 orderBy('createdAt', 'desc') 
             );
             
-            onSnapshot(todaysQuery, (snapshot) => {
+            onSnapshot(allAppointmentsQuery, (snapshot) => {
+                // --- 1. Filter and Render Today's Appointments ---
                 todaysList.innerHTML = '';
+                globalHistoryData = []; // Reset global history data
                 let appointmentsToday = 0;
                 
-                const todayISODate = getISODatePart(new Date().toISOString()); 
-
                 snapshot.forEach((doc) => {
-                    const appt = doc.data();
+                    const appt = { id: doc.id, ...doc.data() };
                     
                     const appointmentISODate = getISODatePart(appt.appointmentDateTime);
 
-                    // CORRECT FILTER: Compare only the YYYY-MM-DD part
                     if (appointmentISODate === todayISODate) { 
+                        // It is TODAY's appointment
                         const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime);
                         const listItem = document.createElement('li');
                         
-                        // Add appointment details and the delete button HTML
                         listItem.innerHTML = `
                             <span>${apptDateDisplay} - ${appt.patientName} (${appt.contactNumber})</span>
                             <button class="delete-btn" data-id="${doc.id}" data-name="${appt.patientName}">Delete</button>
@@ -630,104 +779,22 @@
 
                         todaysList.appendChild(listItem);
                         appointmentsToday++;
+                    } else {
+                        // It is NOT today's appointment (future or past)
+                        // Add to the global history list data structure
+                        globalHistoryData.push(appt);
                     }
                 });
 
                 if (appointmentsToday === 0) {
                     todaysList.innerHTML = '<li>No appointments found scheduled for today. (Real-time)</li>';
                 }
-            });
                 
-            // --- 2. All Patients History (Limited view) ---
-            const allHistoryQuery = query(
-                collection(db, APPOINTMENTS_COLLECTION),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            
-            onSnapshot(allHistoryQuery, (snapshot) => {
-                allHistoryList.innerHTML = '';
-                snapshot.forEach((doc) => {
-                    const appt = doc.data();
-                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime); 
-                    
-                    const listItem = document.createElement('li');
-                    
-                    // Add details and the delete button HTML
-                    listItem.innerHTML = `
-                        <span>Appt: ${apptDateDisplay} | Patient: ${appt.patientName} (${appt.contactNumber})</span>
-                        <button class="delete-btn" data-id="${doc.id}" data-name="${appt.patientName}">Delete</button>
-                    `;
-                    allHistoryList.appendChild(listItem);
-                });
+                // --- 2. Render Paginated Global History (Max 10 total, excluding today) ---
+                // Limit the global history to the 10 most recently created *after* filtering today's
+                globalHistoryData = globalHistoryData.slice(0, 10);
+                renderGlobalHistory();
             });
-        }
-        
-        // --- PAGINATION AND HISTORY RENDERING ---
-        
-        function renderPatientHistory(history, contact) {
-            currentHistoryData = history;
-            const totalEntries = currentHistoryData.length;
-            const totalPages = Math.ceil(totalEntries / entriesPerPage);
-
-            const startIndex = (currentHistoryPage - 1) * entriesPerPage;
-            const endIndex = startIndex + entriesPerPage;
-
-            const entriesToShow = currentHistoryData.slice(startIndex, endIndex);
-            historyEntriesList.innerHTML = '';
-
-            // Update the history status to show total count
-            historyStatusElement.textContent = `Found ${totalEntries} previous entr${totalEntries === 1 ? 'y' : 'ies'} for ${contact}.`;
-
-            if (totalEntries === 0) {
-                historyEntriesList.innerHTML = '';
-            }
-
-            entriesToShow.forEach(item => {
-                const historyItem = document.createElement('li');
-                // Note: We intentionally do NOT add the delete button here as history records are generally immutable.
-                historyItem.innerHTML = `
-                    <span style="font-weight: 700; color: var(--primary-dark-blue);">
-                        ${displayFormattedDate(item.appointmentDateTime)}
-                    </span>
-                    <br>
-                    Booked On: ${item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString() : 'N/A'}
-                `;
-                historyEntriesList.appendChild(historyItem);
-            });
-
-            renderPaginationControls(totalPages, contact);
-        }
-
-        function renderPaginationControls(totalPages, contact) {
-            const paginationContainer = document.querySelector('.pagination-controls');
-            paginationContainer.innerHTML = ''; 
-
-            if (totalPages > 1) {
-                const prevBtn = document.createElement('button');
-                prevBtn.textContent = '« Prev';
-                prevBtn.disabled = currentHistoryPage === 1;
-                prevBtn.onclick = () => { 
-                    currentHistoryPage--; 
-                    renderPatientHistory(currentHistoryData, contact); 
-                };
-
-                const pageInfo = document.createElement('span');
-                pageInfo.textContent = ` Page ${currentHistoryPage} of ${totalPages} `;
-                pageInfo.style.margin = '0 10px';
-
-                const nextBtn = document.createElement('button');
-                nextBtn.textContent = 'Next »';
-                nextBtn.disabled = currentHistoryPage === totalPages;
-                nextBtn.onclick = () => { 
-                    currentHistoryPage++; 
-                    renderPatientHistory(currentHistoryData, contact); 
-                };
-
-                paginationContainer.appendChild(prevBtn);
-                paginationContainer.appendChild(pageInfo);
-                paginationContainer.appendChild(nextBtn);
-            }
         }
         
         // =============================================================
@@ -809,11 +876,13 @@
                     logoutBtn.style.display = 'none';
                     appMainContent.style.display = 'none'; 
                     
+                    // Clear all lists and status when logged out
                     document.querySelector('#todays-appointments .appointment-list').innerHTML = '<li>Please log in to load real-time appointments.</li>';
-                    document.querySelector('#all-patients-history .history-list').innerHTML = '<li>Please log in to load all history.</li>';
-                    historyStatusElement.textContent = 'Waiting for login...';
-                    historyEntriesList.innerHTML = '';
-                    document.querySelector('.pagination-controls').innerHTML = '';
+                    globalHistoryEntriesList.innerHTML = '<li>Please log in to load history.</li>';
+                    globalHistoryPagination.innerHTML = '';
+                    patientHistoryStatusElement.textContent = 'Waiting for login...';
+                    patientHistoryEntriesList.innerHTML = '';
+                    patientHistoryPagination.innerHTML = '';
                 }
             });
             
@@ -822,15 +891,16 @@
                 const contactNumber = event.target.value;
                 
                 if (!auth.currentUser) {
-                    historyStatusElement.textContent = 'Please log in to search history.';
+                    patientHistoryStatusElement.textContent = 'Please log in to search history.';
                     return;
                 }
 
                 if (contactNumber.length === 11 && /^\d{11}$/.test(contactNumber)) {
-                    historyStatusElement.textContent = 'Searching database...';
-                    historyEntriesList.innerHTML = '';
-                    document.querySelector('.pagination-controls').innerHTML = '';
+                    patientHistoryStatusElement.textContent = 'Searching database...';
+                    patientHistoryEntriesList.innerHTML = '';
+                    patientHistoryPagination.innerHTML = '';
 
+                    // Query for the specific contact number
                     const patientQuery = query(
                         collection(db, APPOINTMENTS_COLLECTION),
                         where('contactNumber', '==', contactNumber),
@@ -838,25 +908,21 @@
                         limit(25) 
                     );
                     
+                    // Use onSnapshot for real-time history updates for the current patient
                     onSnapshot(patientQuery, (snapshot) => {
-                        const historyData = snapshot.docs.map(doc => ({ 
+                        currentPatientHistoryData = snapshot.docs.map(doc => ({ 
                             id: doc.id, 
                             ...doc.data() 
                         }));
                         
-                        if (historyData.length > 0) {
-                            currentHistoryPage = 1; 
-                            renderPatientHistory(historyData, contactNumber);
-                        } else {
-                            historyStatusElement.textContent = `No previous history found for ${contactNumber}.`;
-                            historyEntriesList.innerHTML = '';
-                            document.querySelector('.pagination-controls').innerHTML = '';
-                        }
+                        currentPatientHistoryPage = 1; 
+                        // Render the patient history using the pagination function
+                        renderPatientHistory(contactNumber);
                     });
                 } else {
-                    historyStatusElement.textContent = 'Enter a complete 11-digit number to search.';
-                    historyEntriesList.innerHTML = '';
-                    document.querySelector('.pagination-controls').innerHTML = '';
+                    patientHistoryStatusElement.textContent = 'Enter a complete 11-digit number to search.';
+                    patientHistoryEntriesList.innerHTML = '';
+                    patientHistoryPagination.innerHTML = '';
                 }
             });
         });
