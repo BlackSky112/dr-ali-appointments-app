@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. Khurram Ali's Appointments Portal (Staff Access Only)</title>
+    <title>Dr. Khurram Ali's Appointments Portal (Email/Password Auth)</title>
     <!-- Use Inter font if available for a modern look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -59,40 +59,60 @@
             border-bottom: 2px solid var(--accent-yellow);
         }
 
+        /* Login Form Styling */
+        #login-form {
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            margin-right: 20px;
+        }
+        #login-form input {
+            padding: 8px; 
+            border-radius: 4px; 
+            border: 1px solid var(--border-color);
+            width: 200px; 
+            font-size: 0.9rem;
+        }
+        #login-btn {
+            background-color: var(--primary-dark-blue); 
+            color: white;
+            border: none;
+            padding: 8px 15px; 
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 600;
+        }
+        #login-btn:hover {
+            background-color: #3b82f6;
+        }
+        #auth-error {
+            color: var(--required-red);
+            margin-left: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+
         #user-status {
             margin-right: 20px;
             font-weight: 600;
             color: var(--primary-dark-blue);
         }
 
-        #auth-controls input, #auth-controls button {
-            padding: 10px 15px;
-            margin-left: 10px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border-color);
-            transition: all 0.2s;
-        }
-        
-        #auth-controls button[type="submit"] {
-            background-color: var(--primary-dark-blue);
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        #auth-controls button:hover:not(#logout-btn) {
-            background-color: #1f3a8a;
-        }
-
         #logout-btn {
             background-color: var(--required-red);
             color: white;
             border: none;
+            padding: 10px 15px;
+            border-radius: var(--radius);
             cursor: pointer;
+            transition: background-color 0.2s;
         }
         #logout-btn:hover {
              background-color: #c82333;
         }
-
+        
         /* =============================================================
            MAIN LAYOUT
            ============================================================= */
@@ -102,7 +122,7 @@
             margin: 30px auto;
             padding: 0 20px;
             gap: 30px;
-            align-items: flex-start; /* Keep sidebars aligned to the top */
+            align-items: flex-start; 
         }
         
         .main-content { 
@@ -114,18 +134,18 @@
         }
         
         .patient-history-sidebar { 
-            flex: 1.5; /* Slightly wider sidebar */
+            flex: 1.5; 
             min-width: 300px;
-            background: #f0f4ff; /* Light blue/gray for contrast */
+            background: #f0f4ff; 
             padding: 25px; 
             border-radius: var(--radius); 
             box-shadow: var(--box-shadow); 
             height: fit-content; 
-            border-left: 5px solid var(--accent-yellow); /* Yellow accent strip */
+            border-left: 5px solid var(--accent-yellow); 
         }
         
         /* =============================================================
-           FORM STYLES
+           FORM STYLES (General)
            ============================================================= */
         .form-group {
             margin-bottom: 20px;
@@ -139,7 +159,6 @@
             font-size: 1.05rem;
         }
 
-        /* Red Asterisk Style */
         .required::after {
             content: "*";
             color: var(--required-red);
@@ -163,7 +182,6 @@
             outline: none;
         }
 
-        /* --- SUBMIT BUTTON STYLE --- */
         .submit-btn {
             background: var(--primary-dark-blue); 
             background: linear-gradient(135deg, var(--primary-dark-blue) 0%, #3b82f6 100%);
@@ -182,7 +200,7 @@
             letter-spacing: 1px;
         }
 
-        .submit-btn:hover {
+        .submit-btn:hover:not(:disabled) {
             background: linear-gradient(135deg, #3b82f6 0%, var(--primary-dark-blue) 100%);
             box-shadow: 0 8px 20px rgba(30, 64, 175, 0.7);
             transform: translateY(-2px);
@@ -212,13 +230,11 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             font-size: 0.95rem;
             word-wrap: break-word;
-            /* Ensure list content and button are spaced */
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        /* Style for the text content within the list item */
         .appointment-list li span, .history-list li span {
             flex-grow: 1;
             margin-right: 15px;
@@ -237,7 +253,7 @@
             flex-shrink: 0;
             width: 80px; /* Fixed width for consistency */
         }
-        .delete-btn:hover:not(.confirm) {
+        .delete-btn:hover:not(.confirm):not(:disabled) {
             background-color: #c82333;
         }
         /* Confirmation state style (Yellow warning) */
@@ -250,6 +266,10 @@
         .delete-btn.confirm:hover {
             background-color: #fbbf24;
         }
+        .delete-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
         /* History Sidebar Specific Styles */
         #current-patient-history {
@@ -258,8 +278,7 @@
             border-radius: var(--radius);
             background: white;
         }
-        /* Style for the Total Entries count display */
-        #current-patient-history > p:first-of-type {
+        #patient-history-status {
             font-style: normal;
             font-weight: 600;
             color: var(--text-dark);
@@ -321,38 +340,43 @@
                 margin-bottom: 10px;
                 width: 100%;
             }
-            #auth-controls input {
-                width: calc(50% - 10px);
-                margin-left: 0;
-                margin-right: 10px;
-            }
-            #auth-controls button {
+            /* Make login inputs full width on small screens */
+            #login-form {
+                flex-direction: column;
+                gap: 5px;
                 width: 100%;
-                margin-left: 0;
-                margin-top: 10px;
+            }
+            #login-form input, #login-btn {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            #user-status {
+                margin-bottom: 15px;
             }
         }
-
+        
     </style>
 </head>
 <body>
 
     <header>
         <h1>Dr. Khurram Ali's Appointments Portal</h1>
-        <p>Secure Staff Access for Efficient Appointment Management</p>
+        <p>Staff Access for Efficient Appointment Management</p>
     </header>
 
     <!-- Staff Login/Logout Controls -->
     <div id="auth-controls">
-        <span id="user-status">Status: Loading...</span>
+        <span id="user-status">Status: Checking Authentication...</span>
         
+        <!-- Login Form now uses Email/Password -->
         <form id="login-form">
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <input type="email" id="email-input" placeholder="Email" required />
+            <input type="password" id="password-input" placeholder="Password" required />
+            <button type="submit" id="login-btn">Log In</button>
         </form>
+        <span id="auth-error"></span>
         
-        <button id="logout-btn" style="display:none;">Logout</button>
+        <button id="logout-btn" style="display:none;">Log Out</button>
     </div>
 
     <!-- Main Application Content Wrapper (Hidden until authenticated) -->
@@ -370,13 +394,11 @@
                     </div>
 
                     <div class="form-group">
-                        <!-- Label now includes the required red asterisk -->
                         <label for="contact-number" class="required">2. Contact Number (11 Digits)</label>
                         <input type="tel" id="contact-number" name="contactNumber" pattern="[0-9]{11}" required title="Must be exactly 11 digits (0-9 only)." placeholder="e.g., 03001234567">
                     </div>
 
                     <div class="form-group">
-                        <!-- UPDATED: Input type is now datetime-local for native picker -->
                         <label for="appointment-datetime" class="required">3. Appointment Day, Date, and Time</label>
                         <input type="datetime-local" id="appointment-datetime" name="appointmentDateTime" 
                                required 
@@ -390,7 +412,7 @@
                 <section id="todays-appointments">
                     <h3>Today's Appointments</h3>
                     <ul class="appointment-list">
-                        <li>Please log in to load real-time appointments.</li>
+                        <li>Please log in to view today's appointments.</li>
                     </ul>
                 </section>
 
@@ -399,7 +421,7 @@
                     <h3>Global Appointment History (Latest 10 Created)</h3>
                     <p>Displaying the 10 most recently created bookings (excluding today's appointments).</p>
                     <ul class="history-list" id="global-history-entries">
-                        <li>Please log in to load history.</li>
+                        <li>Please log in to view history.</li>
                     </ul>
                     <div class="pagination-controls" id="global-history-pagination">
                         <!-- Global history pagination controls here -->
@@ -415,7 +437,7 @@
                     Enter the 11-digit phone number in the form above to automatically search the patient's past booking history.
                 </p>
                 <div class="history-details" id="current-patient-history">
-                    <p id="patient-history-status">Waiting for 11-digit Contact Number input...</p>
+                    <p id="patient-history-status">Please log in to access features.</p>
                     <ul class="history-entries" id="patient-history-entries">
                         <!-- Patient history entries will be rendered here -->
                     </ul>
@@ -429,6 +451,7 @@
 
     <footer>
         <p>Made with 💙 by Zeeshan Ali. All rights reserved. &copy; 2025 Dr. Khurram Ali's Clinic.</p>
+        <p style="font-size: 0.75rem;">**IMPORTANT:** This version requires staff accounts to be set up in Firebase Authentication (Email/Password must be enabled).</p>
     </footer>
 
     <script type="module">
@@ -436,7 +459,7 @@
         // JAVASCRIPT SECTION (MODULAR FIREBASE SDK)
         // =============================================================
         
-        // Import all necessary Firebase functions
+        // Import necessary Firebase functions for both Firestore and Auth
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
         import { 
             getFirestore, 
@@ -445,18 +468,17 @@
             serverTimestamp, 
             query, 
             orderBy, 
-            limit, 
             onSnapshot,
             deleteDoc, 
             doc,
-            where // Added where for patient search
+            where,
+            limit
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
         
-        // Import Authentication functions
         import { 
             getAuth, 
             signInWithEmailAndPassword, 
-            signOut, 
+            signOut,
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
@@ -474,14 +496,23 @@
         // Initialize Firebase Services
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app); 
+        const auth = getAuth(app); // Initialize Auth service
         
         const APPOINTMENTS_COLLECTION = 'appointments';
         
         // =============================================================
         // GLOBAL STATE AND DOM ELEMENTS
         // =============================================================
+        
+        let userId = null; // Stores the authenticated user's UID
+        let listenersActive = false; // Flag to manage real-time listeners
+
         const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const loginBtn = document.getElementById('login-btn');
+        const authErrorSpan = document.getElementById('auth-error');
+        
         const logoutBtn = document.getElementById('logout-btn');
         const userStatus = document.getElementById('user-status');
         const appMainContent = document.getElementById('app-main-content');
@@ -499,9 +530,12 @@
         // Global History State & Elements
         const globalHistoryEntriesList = document.getElementById('global-history-entries');
         const globalHistoryPagination = document.getElementById('global-history-pagination');
-        const globalEntriesPerPage = 4; // Max 4 per page as requested
+        const globalEntriesPerPage = 4; 
         let globalHistoryPage = 1;
         let globalHistoryData = [];
+        
+        const todaysList = document.querySelector('#todays-appointments .appointment-list');
+
 
         
         // =============================================================
@@ -558,8 +592,8 @@
 
         // Function to handle appointment deletion
         async function deleteAppointment(docId, patientName) {
-            if (!auth.currentUser) {
-                console.error("Permission Denied: Must be logged in to delete appointments.");
+            if (!userId) {
+                console.error("Permission Denied: User not authenticated.");
                 return;
             }
             
@@ -576,7 +610,7 @@
         async function handleAppointmentSubmission(event) {
             event.preventDefault();
 
-            if (!auth.currentUser) {
+            if (!userId) {
                 console.error("Permission Denied: Please log in to book an appointment.");
                 return;
             }
@@ -588,7 +622,8 @@
                 patientName: form.elements['patient-name'].value,
                 contactNumber: contactNumber,
                 appointmentDateTime: form.elements['appointment-datetime'].value, 
-                createdAt: serverTimestamp() 
+                createdAt: serverTimestamp(),
+                bookedBy: userId // Storing who booked the appointment
             };
 
             if (contactNumber.length !== 11 || !/^\d{11}$/.test(contactNumber)) {
@@ -598,7 +633,7 @@
 
             try {
                 await addDoc(collection(db, APPOINTMENTS_COLLECTION), data);
-                console.log(`Appointment for ${data.patientName} booked successfully!`);
+                console.log(`Appointment for ${data.patientName} booked successfully by UID: ${userId}!`);
                 form.reset();
                 
                 // Reset patient history search area after successful booking
@@ -617,10 +652,6 @@
 
         /**
          * Renders the pagination controls for a given list.
-         * @param {number} totalPages - The total number of pages.
-         * @param {number} currentPage - The current page number (1-indexed).
-         * @param {HTMLElement} container - The DOM element to render controls into.
-         * @param {Function} changePageCallback - Function to call on page change.
          */
         function renderPaginationControls(totalPages, currentPage, container, changePageCallback) {
             container.innerHTML = '';
@@ -652,7 +683,6 @@
             const totalEntries = globalHistoryData.length;
             const totalPages = Math.ceil(totalEntries / globalEntriesPerPage);
             
-            // Adjust page if necessary (e.g., if items were deleted)
             if (globalHistoryPage > totalPages && totalPages > 0) {
                 globalHistoryPage = totalPages;
             } else if (totalPages === 0) {
@@ -673,7 +703,6 @@
                 const apptDateDisplay = displayFormattedDate(item.appointmentDateTime); 
                 const listItem = document.createElement('li');
                 
-                // Add details and the delete button HTML
                 listItem.innerHTML = `
                     <span>Appt: ${apptDateDisplay} | Patient: ${item.patientName} (${item.contactNumber})</span>
                     <button class="delete-btn" data-id="${item.id}" data-name="${item.patientName}">Delete</button>
@@ -694,7 +723,6 @@
             const totalEntries = currentPatientHistoryData.length;
             const totalPages = Math.ceil(totalEntries / patientEntriesPerPage);
 
-            // Adjust page if necessary
             if (currentPatientHistoryPage > totalPages && totalPages > 0) {
                 currentPatientHistoryPage = totalPages;
             } else if (totalPages === 0) {
@@ -707,7 +735,6 @@
             const entriesToShow = currentPatientHistoryData.slice(startIndex, endIndex);
             patientHistoryEntriesList.innerHTML = '';
 
-            // Update the history status to show total count
             patientHistoryStatusElement.textContent = `Found ${totalEntries} previous entr${totalEntries === 1 ? 'y' : 'ies'} for ${contact}.`;
 
             if (totalEntries === 0) {
@@ -718,7 +745,6 @@
 
             entriesToShow.forEach(item => {
                 const historyItem = document.createElement('li');
-                // Use .toDate() for Firestore Timestamp objects when displaying
                 const bookedDate = item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString() : 'N/A';
 
                 historyItem.innerHTML = `
@@ -741,25 +767,24 @@
         // =============================================================
         // REAL-TIME LISTENERS
         // =============================================================
-        let listenersActive = false; // Flag to prevent duplicate listeners
         
         function setupGlobalListeners() {
-            if (listenersActive) return; 
+            if (listenersActive || !userId) return; 
             listenersActive = true; 
 
-            const todaysList = document.querySelector('#todays-appointments .appointment-list');
             const todayISODate = getISODatePart(new Date().toISOString()); 
             
-            // Query all appointments ordered by creation time descending
             const allAppointmentsQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
                 orderBy('createdAt', 'desc') 
             );
             
             onSnapshot(allAppointmentsQuery, (snapshot) => {
+                // This function runs every time the data changes
+                
                 // --- 1. Filter and Render Today's Appointments ---
                 todaysList.innerHTML = '';
-                globalHistoryData = []; // Reset global history data
+                globalHistoryData = []; 
                 let appointmentsToday = 0;
                 
                 snapshot.forEach((doc) => {
@@ -781,7 +806,6 @@
                         appointmentsToday++;
                     } else {
                         // It is NOT today's appointment (future or past)
-                        // Add to the global history list data structure
                         globalHistoryData.push(appt);
                     }
                 });
@@ -791,44 +815,118 @@
                 }
                 
                 // --- 2. Render Paginated Global History (Max 10 total, excluding today) ---
-                // Limit the global history to the 10 most recently created *after* filtering today's
                 globalHistoryData = globalHistoryData.slice(0, 10);
                 renderGlobalHistory();
             });
         }
         
         // =============================================================
-        // INITIALIZATION AND AUTH GATE
+        // FIREBASE AUTHENTICATION HANDLERS
+        // =============================================================
+        
+        async function handleLoginSubmission(event) {
+            event.preventDefault();
+            authErrorSpan.textContent = ''; 
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging In...';
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                // Use Firebase sign-in function
+                await signInWithEmailAndPassword(auth, email, password);
+                // Auth state change handler (onAuthStateChanged) will update the UI
+            } catch (error) {
+                let errorMessage = "Login failed. Check console for details.";
+                if (error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Invalid email or password.';
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'User not found.';
+                } else {
+                    errorMessage = error.message;
+                }
+                authErrorSpan.textContent = errorMessage;
+                console.error("Login Error:", error);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log In';
+            }
+        }
+        
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                // Auth state change handler (onAuthStateChanged) will update the UI
+            } catch (error) {
+                console.error("Logout Error:", error);
+            }
+        }
+
+        /**
+         * Updates the UI based on the Firebase Auth state.
+         * @param {firebase.User | null} user 
+         */
+        function updatePortalState(user) {
+            
+            userId = user ? user.uid : null;
+            listenersActive = false; // Reset listener flag
+            
+            if (user) {
+                // Logged In
+                userStatus.textContent = `Status: Logged In (${user.email})`;
+                loginForm.style.display = 'none';
+                logoutBtn.style.display = 'inline';
+                appMainContent.style.display = 'flex'; 
+                authErrorSpan.textContent = '';
+                
+                // Set loading state and start fetching data
+                todaysList.innerHTML = '<li>Loading today\'s appointments in real-time...</li>';
+                globalHistoryEntriesList.innerHTML = '<li>Loading global history...</li>';
+                patientHistoryStatusElement.textContent = 'Enter a complete 11-digit number to search.';
+                
+                setupGlobalListeners(); 
+
+            } else {
+                // Logged Out
+                userStatus.textContent = 'Status: Logged Out';
+                loginForm.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                appMainContent.style.display = 'none'; 
+                
+                // Reset UI placeholder content
+                todaysList.innerHTML = '<li>Please log in to view today\'s appointments.</li>';
+                globalHistoryEntriesList.innerHTML = '<li>Please log in to view history.</li>';
+                globalHistoryPagination.innerHTML = '';
+                patientHistoryStatusElement.textContent = 'Please log in to access features.';
+                patientHistoryEntriesList.innerHTML = '';
+                patientHistoryPagination.innerHTML = '';
+                
+                // Clear inputs
+                emailInput.value = '';
+                passwordInput.value = '';
+            }
+        }
+        
+        // =============================================================
+        // INITIALIZATION AND EVENT LISTENERS
         // =============================================================
 
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('appointment-form');
             const mainContentDiv = document.querySelector('.main-content');
             
-            // --- A. Handle Auth & Form Submissions ---
+            // --- 1. Link Auth Handlers ---
+            loginForm.addEventListener('submit', handleLoginSubmission);
+            logoutBtn.addEventListener('click', handleLogout);
             
-            // Login Handler
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    console.error(`Login Failed: ${error.message}`);
-                }
-            });
-
-            // Logout Handler
-            logoutBtn.addEventListener('click', async () => {
-                await signOut(auth);
-                listenersActive = false; 
-            });
+            // Set up Firebase Auth listener to manage UI state globally
+            onAuthStateChanged(auth, updatePortalState);
             
-            // Link Booking Form Handler
+            // --- 2. Link Booking Form Handler ---
             form.addEventListener('submit', handleAppointmentSubmission);
 
-            // --- B. Delegated Click Handler for Delete Buttons (Confirmation Pattern) ---
+            // --- 3. Delegated Click Handler for Delete Buttons ---
             mainContentDiv.addEventListener('click', (e) => {
                 if (e.target && e.target.matches('.delete-btn')) {
                     const btn = e.target;
@@ -836,17 +934,13 @@
                     const patientName = btn.getAttribute('data-name');
 
                     if (btn.classList.contains('confirm')) {
-                        // SECOND CLICK: Execute deletion
                         deleteAppointment(docId, patientName);
-                        // Visually indicate deletion is happening
                         btn.textContent = 'Deleting...';
                         btn.disabled = true;
                     } else {
-                        // FIRST CLICK: Prompt confirmation
                         btn.classList.add('confirm');
                         btn.textContent = 'Confirm Delete?';
                         
-                        // Revert after 3 seconds if no second click
                         setTimeout(() => {
                             if (btn.classList.contains('confirm')) {
                                 btn.classList.remove('confirm');
@@ -858,39 +952,11 @@
             });
 
             
-            // --- C. The Authentication Gate ---
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    // Logged In
-                    userStatus.textContent = `Status: Logged in as ${user.email}`;
-                    loginForm.style.display = 'none';
-                    logoutBtn.style.display = 'inline';
-                    appMainContent.style.display = 'flex'; 
-                    
-                    setupGlobalListeners(); 
-
-                } else {
-                    // Logged Out
-                    userStatus.textContent = 'Status: Logged Out (Access Restricted)';
-                    loginForm.style.display = window.innerWidth > 1024 ? 'flex' : 'block';
-                    logoutBtn.style.display = 'none';
-                    appMainContent.style.display = 'none'; 
-                    
-                    // Clear all lists and status when logged out
-                    document.querySelector('#todays-appointments .appointment-list').innerHTML = '<li>Please log in to load real-time appointments.</li>';
-                    globalHistoryEntriesList.innerHTML = '<li>Please log in to load history.</li>';
-                    globalHistoryPagination.innerHTML = '';
-                    patientHistoryStatusElement.textContent = 'Waiting for login...';
-                    patientHistoryEntriesList.innerHTML = '';
-                    patientHistoryPagination.innerHTML = '';
-                }
-            });
-            
-            // --- D. AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS ---
+            // --- 4. AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS ---
             contactInput.addEventListener('input', (event) => {
                 const contactNumber = event.target.value;
                 
-                if (!auth.currentUser) {
+                if (!userId) {
                     patientHistoryStatusElement.textContent = 'Please log in to search history.';
                     return;
                 }
@@ -908,7 +974,6 @@
                         limit(25) 
                     );
                     
-                    // Use onSnapshot for real-time history updates for the current patient
                     onSnapshot(patientQuery, (snapshot) => {
                         currentPatientHistoryData = snapshot.docs.map(doc => ({ 
                             id: doc.id, 
@@ -916,7 +981,6 @@
                         }));
                         
                         currentPatientHistoryPage = 1; 
-                        // Render the patient history using the pagination function
                         renderPatientHistory(contactNumber);
                     });
                 } else {
