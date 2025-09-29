@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Khurram Ali - Appointment Booking (Real-Time Modular SDK)</title>
+
+    <style>
+        /* CSS Section (Modern and Visually Appealing Design) - SAME AS BEFORE */
+        :root {
+            --primary-color: #007BFF; 
+            --secondary-color: #28a745; 
+            --bg-color: #f4f7f6; 
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 40px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+        }
+
+        .booking-container {
+            display: flex;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+            gap: 30px;
+        }
+
+        .main-content {
+            flex: 3;
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .patient-history-sidebar {
+            flex: 1;
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            height: fit-content;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .submit-btn {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: #1e7e34;
+        }
+
+        /* Section Styling */
+        section h3 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+
+        .appointment-list, .history-entries {
+            list-style: none;
+            padding: 0;
+        }
+
+        .appointment-list li {
+            padding: 10px;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .history-entries li {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+
+        .pagination-controls button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 992px) {
+            .booking-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dr. Khurram Ali's Clinic</h1>
+        <p>Efficient and Modern Appointment Scheduling</p>
+    </header>
+
+    <main>
+        <div class="booking-container">
+            <div class="main-content">
+                <h2>Book an Appointment</h2>
+
+                <form id="appointment-form">
+                    <div class="form-group">
+                        <label for="patient-name">1. Patient Name (Mandatory)</label>
+                        <input type="text" id="patient-name" name="patientName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contact-number">2. Contact Number (11 Digits Mandatory)</label>
+                        <input type="tel" id="contact-number" name="contactNumber" pattern="[0-9]{11}" required title="Must be exactly 11 digits (0-9 only).">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appointment-datetime">3. Appointment Day, Date, and Time (Required)</label>
+                        <input type="text" id="appointment-datetime" name="appointmentDateTime" placeholder="Format: 20-Sep-2025 at 12:00 PM" required>
+                    </div>
+
+                    <div class="form-group staff-entry-option">
+                        <input type="checkbox" id="staff-entry" name="staffEntry">
+                        <label for="staff-entry">Staff Entry (Check if entering details via phone call)</label>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Book Appointment</button>
+                </form>
+
+                <section id="todays-appointments">
+                    <h3>Today's Appointments</h3>
+                    <ul class="appointment-list">
+                        <li>Loading real-time appointments...</li>
+                    </ul>
+                </section>
+
+                <section id="all-patients-history">
+                    <h3>All Patients History</h3>
+                    <p>Displaying the latest appointments across all patients (synced in real-time).</p>
+                    <ul class="history-list">
+                        <li>Loading all history...</li>
+                    </ul>
+                </section>
+
+            </div>
+
+            <aside class="patient-history-sidebar">
+                <h3>Patient History (Current Entry)</h3>
+                <div class="history-details" id="current-patient-history">
+                    <p>History will load here once an **11-digit Contact Number** is entered.</p>
+                    <ul class="history-entries">
+                        </ul>
+                    <div class="pagination-controls">
+                        </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Dr. Khurram Ali's Clinic. All rights reserved.</p>
+    </footer>
+
+    <script type="module">
+        // =============================================================
+        // JAVASCRIPT SECTION (MODULAR FIREBASE SDK)
+        // =============================================================
+        
+        // Import all necessary Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            serverTimestamp, 
+            query, 
+            where, 
+            orderBy, 
+            limit, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration (as provided)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIHjU-N5d_5uVIN0K4qDnTc1O1HCEY_1M",
+            authDomain: "dr-ali-appointments.firebaseapp.com",
+            projectId: "dr-ali-appointments",
+            storageBucket: "dr-ali-appointments.firebasestorage.app",
+            messagingSenderId: "939907338033",
+            appId: "1:939907338033:web:cdfc9097b4791a4eab2a10"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const APPOINTMENTS_COLLECTION = 'appointments';
+        
+        // =============================================================
+        // MAIN APPLICATION LOGIC (Adapted for Modular SDK)
+        // =============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('appointment-form');
+            const contactInput = document.getElementById('contact-number');
+
+            // --- A. Handle Appointment Submission (Booking) ---
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const data = {
+                    patientName: document.getElementById('patient-name').value,
+                    contactNumber: document.getElementById('contact-number').value,
+                    appointmentDateTime: document.getElementById('appointment-datetime').value,
+                    isStaffEntry: document.getElementById('staff-entry').checked,
+                    createdAt: serverTimestamp() // Modular call
+                };
+
+                // Final validation check
+                if (data.contactNumber.length !== 11 || !/^\d{11}$/.test(data.contactNumber)) {
+                    alert('Error: Contact Number must be exactly 11 digits (0-9 only).');
+                    return;
+                }
+
+                try {
+                    // Modular call: addDoc
+                    await addDoc(collection(db, APPOINTMENTS_COLLECTION), data);
+                    alert(`Appointment for ${data.patientName} booked successfully and synced!`);
+                    form.reset();
+                    document.querySelector('#current-patient-history p').textContent = 
+                        'History will load here once an 11-digit Contact Number is entered.';
+                    document.querySelector('.history-entries').innerHTML = '';
+                    
+                } catch (error) {
+                    console.error("Error writing document: ", error);
+                    alert("An error occurred during booking. Please try again.");
+                }
+            });
+
+            // --- B. Real-Time Patient History Lookup (Right Sidebar) ---
+            contactInput.addEventListener('input', (event) => {
+                const contactNumber = event.target.value;
+                const historyPlaceholder = document.querySelector('#current-patient-history p');
+                historyPlaceholder.textContent = 'Searching for history...';
+
+                if (contactNumber.length === 11 && /^\d{11}$/.test(contactNumber)) {
+                    // Modular call: query and onSnapshot
+                    const patientQuery = query(
+                        collection(db, APPOINTMENTS_COLLECTION),
+                        where('contactNumber', '==', contactNumber),
+                        orderBy('createdAt', 'desc'),
+                        limit(25)
+                    );
+                    
+                    onSnapshot(patientQuery, (snapshot) => {
+                        const historyData = snapshot.docs.map(doc => ({ 
+                            id: doc.id, 
+                            ...doc.data() 
+                        }));
+                        
+                        if (historyData.length > 0) {
+                            historyPlaceholder.textContent = `Found ${historyData.length} entries.`;
+                            renderPatientHistory(historyData, contactNumber);
+                        } else {
+                            historyPlaceholder.textContent = `No previous history found for ${contactNumber}.`;
+                            document.querySelector('.history-entries').innerHTML = '';
+                            document.querySelector('.pagination-controls').innerHTML = '';
+                        }
+                    });
+                } else {
+                    historyPlaceholder.textContent = 'Enter 11 digits to view history.';
+                    document.querySelector('.history-entries').innerHTML = '';
+                    document.querySelector('.pagination-controls').innerHTML = '';
+                }
+            });
+
+            // --- C. Global Real-Time Sync (Today's & All History Sections) ---
+            setupGlobalListeners();
+        });
+
+        // =============================================================
+        // REAL-TIME DISPLAY & PAGINATION FUNCTIONS (MODULAR ADAPTATIONS)
+        // =============================================================
+
+        function setupGlobalListeners() {
+            const todaysList = document.querySelector('#todays-appointments .appointment-list');
+            const allHistoryList = document.querySelector('#all-patients-history .history-list');
+
+            const dateFormatter = new Intl.DateTimeFormat('en-US', { 
+                year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' 
+            });
+
+            // 1. Today's Appointments Listener
+            const todaysQuery = query(
+                collection(db, APPOINTMENTS_COLLECTION),
+                orderBy('appointmentDateTime')
+            );
+
+            onSnapshot(todaysQuery, (snapshot) => {
+                todaysList.innerHTML = '';
+                let appointmentsToday = 0;
+                const todayString = new Date().toISOString().slice(0, 10);
+
+                snapshot.forEach((doc) => {
+                    const appt = doc.data();
+                    if (appt.appointmentDateTime && appt.appointmentDateTime.includes(todayString.substring(5, 10))) { 
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${appt.appointmentDateTime} - ${appt.patientName}`;
+                        todaysList.appendChild(listItem);
+                        appointmentsToday++;
+                    }
+                });
+
+                if (appointmentsToday === 0) {
+                    todaysList.innerHTML = '<li>No appointments scheduled for today (Real-time).</li>';
+                }
+            });
+                
+            // 2. All Patients History (Limited view for performance)
+            const allHistoryQuery = query(
+                collection(db, APPOINTMENTS_COLLECTION),
+                orderBy('createdAt', 'desc'),
+                limit(10)
+            );
+            
+            onSnapshot(allHistoryQuery, (snapshot) => {
+                allHistoryList.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const appt = doc.data();
+                    const timestamp = appt.createdAt ? appt.createdAt.toDate() : new Date();
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `[${dateFormatter.format(timestamp)}] - ${appt.patientName} (${appt.contactNumber})`;
+                    allHistoryList.appendChild(listItem);
+                });
+            });
+        }
+
+        // Pagination and History Rendering Logic (same as before)
+        const entriesPerPage = 5;
+        let currentHistoryPage = 1;
+        let currentHistoryData = [];
+
+        function renderPatientHistory(history, contact) {
+            currentHistoryData = history;
+            const totalPages = Math.ceil(currentHistoryData.length / entriesPerPage);
+
+            const startIndex = (currentHistoryPage - 1) * entriesPerPage;
+            const endIndex = startIndex + entriesPerPage;
+
+            const entriesToShow = currentHistoryData.slice(startIndex, endIndex);
+            const historyList = document.querySelector('.history-entries');
+            historyList.innerHTML = '';
+
+            entriesToShow.forEach(item => {
+                const historyItem = document.createElement('li');
+                historyItem.textContent = `${item.appointmentDateTime}: Reason (N/A in schema)`;
+                historyList.appendChild(historyItem);
+            });
+
+            renderPaginationControls(totalPages, contact);
+        }
+
+        function renderPaginationControls(totalPages, contact) {
+            const paginationContainer = document.querySelector('.pagination-controls');
+            paginationContainer.innerHTML = ''; 
+
+            if (totalPages > 1) {
+                const prevBtn = document.createElement('button');
+                prevBtn.textContent = '« Prev';
+                prevBtn.disabled = currentHistoryPage === 1;
+                prevBtn.onclick = () => { 
+                    currentHistoryPage--; 
+                    renderPatientHistory(currentHistoryData, contact); 
+                };
+
+                const pageInfo = document.createElement('span');
+                pageInfo.textContent = ` Page ${currentHistoryPage} of ${totalPages} `;
+
+                const nextBtn = document.createElement('button');
+                nextBtn.textContent = 'Next »';
+                nextBtn.disabled = currentHistoryPage === totalPages;
+                nextBtn.onclick = () => { 
+                    currentHistoryPage++; 
+                    renderPatientHistory(currentHistoryData, contact); 
+                };
+
+                paginationContainer.appendChild(prevBtn);
+                paginationContainer.appendChild(pageInfo);
+                paginationContainer.appendChild(nextBtn);
+            }
+        }
+    </script>
+</body>
+</html>
