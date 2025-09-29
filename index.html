@@ -3,89 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. Khurram Ali - Appointment Booking (Staff Access Only)</title>
+    <title>Dr. Khurram Ali's Appointments Portal (Staff Access Only)</title>
+    <!-- Use Inter font if available for a modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* CSS Section (Simplified for brevity, but all existing styles remain) */
+        /* =============================================================
+           BASE STYLES & COLOR PALETTE
+           ============================================================= */
         :root {
-            --primary-color: #007BFF; 
-            --secondary-color: #28a745; 
-            --bg-color: #f4f7f6; 
-            --text-color: #333;
-            --border-radius: 8px;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --primary-dark-blue: #1e40af; /* Rich Dark Blue */
+            --accent-yellow: #fcd34d;     /* Vibrant Yellow */
+            --bg-light: #f8fafc;          /* Off-white background */
+            --text-dark: #1f2937;         /* Near black text */
+            --required-red: #dc3545;      /* Standard red for required indicator */
+            --border-color: #e5e7eb;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 8px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
             line-height: 1.6;
             margin: 0;
             padding: 0;
         }
 
+        /* =============================================================
+           HEADER & AUTH CONTROLS
+           ============================================================= */
         header {
-            background-color: var(--primary-color);
+            background-color: var(--primary-dark-blue);
             color: white;
             padding: 20px 40px;
             text-align: center;
             box-shadow: var(--box-shadow);
         }
-        
-        /* New Style for the Auth Area */
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+            padding-bottom: 5px;
+        }
+
         #auth-controls {
             display: flex;
             justify-content: flex-end;
             align-items: center;
             padding: 15px 40px;
             background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-bottom: 2px solid var(--accent-yellow);
+        }
+
+        #user-status {
+            margin-right: 20px;
+            font-weight: 600;
+            color: var(--primary-dark-blue);
         }
 
         #auth-controls input, #auth-controls button {
-            padding: 8px 12px;
+            padding: 10px 15px;
             margin-left: 10px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        
+        #auth-controls button[type="submit"] {
+            background-color: var(--primary-dark-blue);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #auth-controls button:hover:not(#logout-btn) {
+            background-color: #1f3a8a;
         }
 
         #logout-btn {
-            background-color: #dc3545;
+            background-color: var(--required-red);
             color: white;
             border: none;
             cursor: pointer;
         }
+        #logout-btn:hover {
+             background-color: #c82333;
+        }
 
-        /* --- Existing Layout Styles --- */
+        /* =============================================================
+           MAIN LAYOUT
+           ============================================================= */
         .booking-container {
             display: flex;
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 30px auto;
             padding: 0 20px;
             gap: 30px;
+            align-items: flex-start; /* Keep sidebars aligned to the top */
         }
         
-        .main-content { flex: 3; background: white; padding: 30px; border-radius: var(--border-radius); box-shadow: var(--box-shadow); }
-        .patient-history-sidebar { flex: 1; background: #e9ecef; padding: 20px; border-radius: var(--border-radius); box-shadow: var(--box-shadow); height: fit-content; }
+        .main-content { 
+            flex: 3; 
+            background: white; 
+            padding: 30px; 
+            border-radius: var(--radius); 
+            box-shadow: var(--box-shadow); 
+        }
         
-        /* Form, List, and Media Query styles remain the same */
-        /* ... */
+        .patient-history-sidebar { 
+            flex: 1.5; /* Slightly wider sidebar */
+            min-width: 300px;
+            background: #f0f4ff; /* Light blue/gray for contrast */
+            padding: 25px; 
+            border-radius: var(--radius); 
+            box-shadow: var(--box-shadow); 
+            height: fit-content; 
+            border-left: 5px solid var(--accent-yellow); /* Yellow accent strip */
+        }
         
+        /* =============================================================
+           FORM STYLES
+           ============================================================= */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 1.05rem;
+        }
+
+        /* Red Asterisk Style */
+        .required::after {
+            content: "*";
+            color: var(--required-red);
+            margin-left: 5px;
+            font-size: 1.1rem;
+        }
+
+        input[type="text"], input[type="tel"], input[type="email"], input[type="password"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-dark-blue);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2);
+            outline: none;
+        }
+
+        /* --- ENHANCED SUBMIT BUTTON STYLE --- */
+        .submit-btn {
+            /* Primary Color Scheme */
+            background: var(--primary-dark-blue); 
+            background: linear-gradient(135deg, var(--primary-dark-blue) 0%, #3b82f6 100%);
+            color: white;
+            padding: 18px 25px; /* Slightly larger padding */
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 1.2rem; /* Larger font */
+            font-weight: 800; /* Bolder text */
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 25px; /* More space above */
+            /* Prominent Shadow */
+            box-shadow: 0 6px 15px rgba(30, 64, 175, 0.5); 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            /* Lighten slightly and increase shadow on hover */
+            background: linear-gradient(135deg, #3b82f6 0%, var(--primary-dark-blue) 100%);
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.7);
+            transform: translateY(-2px);
+        }
+        
+        /* =============================================================
+           LIST & HISTORY STYLES
+           ============================================================= */
+        h3 {
+            border-bottom: 2px solid var(--accent-yellow);
+            padding-bottom: 8px;
+            margin-top: 30px;
+            color: var(--primary-dark-blue);
+        }
+
+        .appointment-list, .history-list, .history-entries {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .appointment-list li, .history-list li, .history-entries li {
+            background: var(--bg-light);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 4px solid var(--accent-yellow);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+
+        /* History Sidebar Specific Styles */
+        #current-patient-history {
+            padding: 15px;
+            border: 1px dashed var(--primary-dark-blue);
+            border-radius: var(--radius);
+            background: white;
+        }
+        #current-patient-history p {
+            font-style: italic;
+            color: #6b7280;
+        }
+
+        .pagination-controls button {
+            background-color: var(--primary-dark-blue);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .pagination-controls button:disabled {
+            background-color: #6b7280;
+            cursor: not-allowed;
+        }
+
+        /* =============================================================
+           FOOTER
+           ============================================================= */
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            background-color: var(--text-dark);
+            color: var(--bg-light);
+            font-size: 0.9rem;
+        }
+
+        /* =============================================================
+           RESPONSIVE DESIGN (Mobile First)
+           ============================================================= */
+        @media (max-width: 1024px) {
+            .booking-container {
+                flex-direction: column;
+            }
+            .main-content, .patient-history-sidebar {
+                flex: none;
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            #auth-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #auth-controls span, #auth-controls form {
+                margin-bottom: 10px;
+                width: 100%;
+            }
+            #auth-controls input {
+                width: calc(50% - 10px);
+                margin-left: 0;
+                margin-right: 10px;
+            }
+            #auth-controls button {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Dr. Khurram Ali's Clinic</h1>
-        <p>Efficient and Modern Appointment Scheduling</p>
+        <h1>Dr. Khurram Ali's Appointments Portal</h1>
+        <p>Secure Staff Access for Efficient Appointment Management</p>
     </header>
 
+    <!-- Staff Login/Logout Controls -->
     <div id="auth-controls">
-        <span id="user-status" style="margin-right: 15px; font-weight: bold;">Status: Loading...</span>
+        <span id="user-status">Status: Loading...</span>
         
         <form id="login-form">
-            <input type="email" id="login-email" placeholder="Staff Email" required>
+            <input type="email" id="login-email" placeholder="Email" required>
             <input type="password" id="login-password" placeholder="Password" required>
             <button type="submit">Login</button>
         </form>
@@ -93,67 +309,77 @@
         <button id="logout-btn" style="display:none;">Logout</button>
     </div>
 
+    <!-- Main Application Content Wrapper (Hidden until authenticated) -->
     <main id="app-main-content" style="display:none;">
         <div class="booking-container">
+            <!-- Left/Center: Appointment Form and Main Sections -->
             <div class="main-content">
-                <h2>Book an Appointment</h2>
+                <h2>Book a New Appointment</h2>
 
+                <!-- Appointment Booking Form -->
                 <form id="appointment-form">
                     <div class="form-group">
-                        <label for="patient-name">1. Patient Name (Mandatory)</label>
+                        <label for="patient-name" class="required">1. Patient Name</label>
                         <input type="text" id="patient-name" name="patientName" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="contact-number">2. Contact Number (11 Digits Mandatory)</label>
-                        <input type="tel" id="contact-number" name="contactNumber" pattern="[0-9]{11}" required title="Must be exactly 11 digits (0-9 only).">
+                        <!-- Label now includes the required red asterisk -->
+                        <label for="contact-number" class="required">2. Contact Number (11 Digits)</label>
+                        <input type="tel" id="contact-number" name="contactNumber" pattern="[0-9]{11}" required title="Must be exactly 11 digits (0-9 only)." placeholder="e.g., 03001234567">
                     </div>
 
                     <div class="form-group">
-                        <label for="appointment-datetime">3. Appointment Day, Date, and Time (Required)</label>
-                        <input type="text" id="appointment-datetime" name="appointmentDateTime" placeholder="Format: 20-Sep-2025 at 12:00 PM" required>
-                    </div>
-
-                    <div class="form-group staff-entry-option">
-                        <input type="checkbox" id="staff-entry" name="staffEntry">
-                        <label for="staff-entry">Staff Entry (Check if entering details via phone call)</label>
+                        <!-- UPDATED: Input type is now datetime-local for native picker -->
+                        <label for="appointment-datetime" class="required">3. Appointment Date and Time</label>
+                        <input type="datetime-local" id="appointment-datetime" name="appointmentDateTime" 
+                               required 
+                               title="Select a date and time using the calendar picker.">
                     </div>
 
                     <button type="submit" class="submit-btn">Book Appointment</button>
                 </form>
 
+                <!-- Today's Appointments Section (Real-time Sync) -->
                 <section id="todays-appointments">
                     <h3>Today's Appointments</h3>
                     <ul class="appointment-list">
-                        <li>Loading real-time appointments...</li>
+                        <li>Please log in to load real-time appointments.</li>
                     </ul>
                 </section>
 
+                <!-- All Patients History Section (Conceptual/Limited View) -->
                 <section id="all-patients-history">
-                    <h3>All Patients History</h3>
-                    <p>Displaying the latest appointments across all patients (synced in real-time).</p>
+                    <h3>Latest 10 Bookings (All Patients)</h3>
+                    <p>Displaying the latest appointments synced in real-time.</p>
                     <ul class="history-list">
-                        <li>Loading all history...</li>
+                        <li>Please log in to load all history.</li>
                     </ul>
                 </section>
 
             </div>
 
+            <!-- Right Side: Current Patient History Section (Looks Great Now!) -->
             <aside class="patient-history-sidebar">
-                <h3>Patient History (Current Entry)</h3>
+                <h3>Patient History Search</h3>
+                <p class="text-dark">
+                    Enter the 11-digit phone number in the form above to automatically search the patient's past booking history.
+                </p>
                 <div class="history-details" id="current-patient-history">
-                    <p>History will load here once an **11-digit Contact Number** is entered.</p>
+                    <p>Waiting for 11-digit Contact Number input...</p>
                     <ul class="history-entries">
-                        </ul>
+                        <!-- History entries will be rendered here -->
+                    </ul>
                     <div class="pagination-controls">
-                        </div>
+                        <!-- Pagination controls here -->
+                    </div>
                 </div>
             </aside>
         </div>
     </main>
 
     <footer>
-        <p>&copy; 2025 Dr. Khurram Ali's Clinic. All rights reserved.</p>
+        <p>Made with 💙 by Zeeshan Ali. All rights reserved. &copy; 2025 Dr. Khurram Ali's Clinic.</p>
     </footer>
 
     <script type="module">
@@ -184,7 +410,7 @@
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
 
-        // Your web app's Firebase configuration (as provided)
+        // Your web app's Firebase configuration (STRICTLY REQUIRED FOR FUNCTIONALITY)
         const firebaseConfig = {
             apiKey: "AIzaSyDIHjU-N5d_5uVIN0K4qDnTc1O1HCEY_1M",
             authDomain: "dr-ali-appointments.firebaseapp.com",
@@ -194,177 +420,111 @@
             appId: "1:939907338033:web:cdfc9097b4791a4eab2a10"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase Services
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        // NEW: Initialize Auth
         const auth = getAuth(app); 
         
         const APPOINTMENTS_COLLECTION = 'appointments';
         
         // =============================================================
-        // MAIN APPLICATION LOGIC 
+        // DOM ELEMENTS AND HELPERS
         // =============================================================
-        
-        // Define global variables for DOM elements used in the Auth logic
         const loginForm = document.getElementById('login-form');
         const logoutBtn = document.getElementById('logout-btn');
         const userStatus = document.getElementById('user-status');
         const appMainContent = document.getElementById('app-main-content');
         
-        // Function definitions (must be outside DOMContentLoaded to be callable by onAuthStateChanged)
+        const contactInput = document.getElementById('contact-number');
+        const historyPlaceholder = document.querySelector('#current-patient-history p');
+        const historyEntriesList = document.querySelector('.history-entries');
+
+        /**
+         * Converts the ISO string (from datetime-local input) into the user-requested display format.
+         * Format: 12-September-2025 (Thursday) at 12:00 PM
+         * @param {string} isoString The ISO 8601 string (YYYY-MM-DDTHH:MM).
+         * @returns {string} The formatted date string.
+         */
+        function displayFormattedDate(isoString) {
+            if (!isoString) return 'N/A';
+            try {
+                const date = new Date(isoString);
+                if (isNaN(date.getTime())) return isoString; // Fallback if invalid date
+                
+                const dayOptions = { weekday: 'long' };
+                const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
+                const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+
+                const dayName = date.toLocaleDateString('en-US', dayOptions);
+                
+                // Format date part manually to match the DD-Month-YYYY structure
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleDateString('en-US', { month: 'long' });
+                const year = date.getFullYear();
+
+                const timePart = date.toLocaleTimeString('en-US', timeOptions);
+
+                return `${day}-${month}-${year} (${dayName}) at ${timePart}`;
+            } catch (e) {
+                console.error("Date formatting failed:", e);
+                return isoString;
+            }
+        }
+
+
+        // =============================================================
+        // FIREBASE INTERACTION LOGIC
+        // =============================================================
 
         async function handleAppointmentSubmission(event) {
             event.preventDefault();
 
-            // Ensure we are logged in before proceeding with submission (double check)
             if (!auth.currentUser) {
-                alert("Please log in to book an appointment.");
+                alert("Permission Denied: Please log in to book an appointment.");
                 return;
             }
 
             const form = event.target;
+            const contactNumber = form.elements['contact-number'].value;
+
             const data = {
                 patientName: form.elements['patient-name'].value,
-                contactNumber: form.elements['contact-number'].value,
-                appointmentDateTime: form.elements['appointment-datetime'].value,
-                isStaffEntry: form.elements['staff-entry'].checked,
-                createdAt: serverTimestamp() // Modular call
+                contactNumber: contactNumber,
+                // Stores the ISO string from the datetime-local input (YYYY-MM-DDTHH:MM)
+                appointmentDateTime: form.elements['appointment-datetime'].value, 
+                createdAt: serverTimestamp() 
             };
 
-            // Final client-side validation check
-            if (data.contactNumber.length !== 11 || !/^\d{11}$/.test(data.contactNumber)) {
+            // Client-side validation check (must match server rules)
+            if (contactNumber.length !== 11 || !/^\d{11}$/.test(contactNumber)) {
                 alert('Error: Contact Number must be exactly 11 digits (0-9 only).');
                 return;
             }
 
             try {
-                // This call will ONLY succeed if the user is authenticated (checked by Firebase Rules)
                 await addDoc(collection(db, APPOINTMENTS_COLLECTION), data);
-                alert(`Appointment for ${data.patientName} booked successfully and synced!`);
+                
+                alert(`Appointment for ${data.patientName} booked successfully!`);
                 form.reset();
-                document.querySelector('#current-patient-history p').textContent = 
-                    'History will load here once an 11-digit Contact Number is entered.';
-                document.querySelector('.history-entries').innerHTML = '';
+                // Reset history view
+                historyPlaceholder.textContent = 'History cleared, waiting for new 11-digit number...';
+                historyEntriesList.innerHTML = '';
+                document.querySelector('.pagination-controls').innerHTML = '';
                 
             } catch (error) {
                 console.error("Error writing document: ", error);
-                // This error will likely be "Permission Denied" if the Firestore Rule is not met
-                alert("An error occurred during booking. Please ensure you are logged in and try again.");
+                alert(`Booking failed. Check console for error details (likely a permission denied if not logged in).`);
             }
         }
-
-        // The rest of the support functions (setupGlobalListeners, renderPatientHistory, etc.) 
-        // remain the same as before. They will only run when called by the onAuthStateChanged listener.
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('appointment-form');
-            const contactInput = document.getElementById('contact-number');
-            
-            // --- A. Handle Auth Submissions ---
-            
-            // Login Handler
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    alert(`Login Failed: ${error.message}`);
-                }
-            });
-
-            // Logout Handler
-            logoutBtn.addEventListener('click', async () => {
-                await signOut(auth);
-            });
-            
-            // --- B. The Authentication Gate (Controls UI visibility and data syncing) ---
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    // User is logged in (staff member)
-                    userStatus.textContent = `Status: Logged in as ${user.email}`;
-                    loginForm.style.display = 'none';
-                    logoutBtn.style.display = 'inline';
-                    appMainContent.style.display = 'flex'; // Show the app
-                    
-                    // Start data synchronization after successful login
-                    setupGlobalListeners(); 
-
-                } else {
-                    // User is NOT logged in (public view)
-                    userStatus.textContent = 'Status: Logged Out (Access Restricted)';
-                    loginForm.style.display = 'inline';
-                    logoutBtn.style.display = 'none';
-                    appMainContent.style.display = 'none'; // Hide the app
-                    
-                    // Clear old data and display a message
-                    document.querySelector('.appointment-list').innerHTML = '<li>Please log in to view appointments.</li>';
-                    document.querySelector('.history-list').innerHTML = '<li>Please log in to view history.</li>';
-                }
-            });
-            
-            // --- C. Link Form Handlers to DOM ---
-            form.addEventListener('submit', handleAppointmentSubmission);
-
-            // BIND THE CONTACT INPUT LISTENER to the DOM element
-            contactInput.addEventListener('input', (event) => {
-                const contactNumber = event.target.value;
-                const historyPlaceholder = document.querySelector('#current-patient-history p');
-                
-                // Only proceed if the user is logged in
-                if (!auth.currentUser) {
-                    historyPlaceholder.textContent = 'Please log in to search history.';
-                    return;
-                }
-
-                historyPlaceholder.textContent = 'Searching for history...';
-
-                if (contactNumber.length === 11 && /^\d{11}$/.test(contactNumber)) {
-                    // Modular call: query and onSnapshot
-                    const patientQuery = query(
-                        collection(db, APPOINTMENTS_COLLECTION),
-                        where('contactNumber', '==', contactNumber),
-                        orderBy('createdAt', 'desc'),
-                        limit(25)
-                    );
-                    
-                    onSnapshot(patientQuery, (snapshot) => {
-                        const historyData = snapshot.docs.map(doc => ({ 
-                            id: doc.id, 
-                            ...doc.data() 
-                        }));
-                        
-                        if (historyData.length > 0) {
-                            historyPlaceholder.textContent = `Found ${historyData.length} entries.`;
-                            renderPatientHistory(historyData, contactNumber);
-                        } else {
-                            historyPlaceholder.textContent = `No previous history found for ${contactNumber}.`;
-                            document.querySelector('.history-entries').innerHTML = '';
-                            document.querySelector('.pagination-controls').innerHTML = '';
-                        }
-                    });
-                } else {
-                    historyPlaceholder.textContent = 'Enter 11 digits to view history.';
-                    document.querySelector('.history-entries').innerHTML = '';
-                    document.querySelector('.pagination-controls').innerHTML = '';
-                }
-            });
-
-        });
-        
         
         // =============================================================
-        // REAL-TIME DISPLAY & PAGINATION FUNCTIONS (Keep these outside 
-        // DOMContentLoaded for better scope management)
+        // REAL-TIME DISPLAY & HISTORY FUNCTIONS
         // =============================================================
-
+        let listenersActive = false; // Flag to prevent duplicate listeners
+        
         function setupGlobalListeners() {
-            // Check if listeners are already running to prevent duplicates
-            if (window.listenersActive) return; 
-            window.listenersActive = true; 
+            if (listenersActive) return; 
+            listenersActive = true; 
 
             const todaysList = document.querySelector('#todays-appointments .appointment-list');
             const allHistoryList = document.querySelector('#all-patients-history .history-list');
@@ -376,51 +536,60 @@
             // 1. Today's Appointments Listener
             const todaysQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
-                orderBy('appointmentDateTime')
+                orderBy('createdAt', 'desc') // Order by creation time
             );
             
-            // Note: onSnapshot requires read access, which is now protected by the rule: allow read: if isAuthenticated();
             onSnapshot(todaysQuery, (snapshot) => {
                 todaysList.innerHTML = '';
                 let appointmentsToday = 0;
-                const todayString = new Date().toISOString().slice(0, 10);
+                
+                // Get the current day and month string for checking 
+                // We use the full month name to match the displayFormattedDate output
+                const todayShort = new Date().toLocaleDateString('en-US', { month: 'long', day: '2-digit' });
 
                 snapshot.forEach((doc) => {
                     const appt = doc.data();
-                    if (appt.appointmentDateTime && appt.appointmentDateTime.includes(todayString.substring(5, 10))) { 
+                    
+                    // Use the function to get the patient-friendly display format
+                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime);
+
+                    // Check if the appointment display string contains the current short date (e.g., "September 29")
+                    if (apptDateDisplay.includes(todayShort)) { 
                         const listItem = document.createElement('li');
-                        listItem.textContent = `${appt.appointmentDateTime} - ${appt.patientName}`;
+                        // Use the formatted display
+                        listItem.textContent = `${apptDateDisplay} - ${appt.patientName} (${appt.contactNumber})`;
                         todaysList.appendChild(listItem);
                         appointmentsToday++;
                     }
                 });
 
                 if (appointmentsToday === 0) {
-                    todaysList.innerHTML = '<li>No appointments scheduled for today (Real-time).</li>';
+                    todaysList.innerHTML = '<li>No appointments found matching today\'s date (Real-time).</li>';
                 }
             });
                 
-            // 2. All Patients History (Limited view for performance)
+            // 2. All Patients History (Limited view)
             const allHistoryQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
                 orderBy('createdAt', 'desc'),
                 limit(10)
             );
             
-            // Note: onSnapshot requires read access, which is now protected by the rule: allow read: if isAuthenticated();
             onSnapshot(allHistoryQuery, (snapshot) => {
                 allHistoryList.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const appt = doc.data();
-                    const timestamp = appt.createdAt ? appt.createdAt.toDate() : new Date();
+                    const bookingTimestamp = appt.createdAt ? dateFormatter.format(appt.createdAt.toDate()) : 'N/A';
+                    const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime); // Use the new display function
+                    
                     const listItem = document.createElement('li');
-                    listItem.textContent = `[${dateFormatter.format(timestamp)}] - ${appt.patientName} (${appt.contactNumber})`;
+                    listItem.textContent = `Appt: ${apptDateDisplay} | Patient: ${appt.patientName} (${appt.contactNumber})`;
                     allHistoryList.appendChild(listItem);
                 });
             });
         }
         
-        // ... (Keep the rest of your pagination functions: renderPatientHistory, renderPaginationControls)
+        // Pagination logic remains the same
         const entriesPerPage = 5;
         let currentHistoryPage = 1;
         let currentHistoryData = [];
@@ -433,13 +602,19 @@
             const endIndex = startIndex + entriesPerPage;
 
             const entriesToShow = currentHistoryData.slice(startIndex, endIndex);
-            const historyList = document.querySelector('.history-entries');
-            historyList.innerHTML = '';
+            historyEntriesList.innerHTML = '';
 
             entriesToShow.forEach(item => {
                 const historyItem = document.createElement('li');
-                historyItem.textContent = `${item.appointmentDateTime}: Reason (N/A in schema)`;
-                historyList.appendChild(historyItem);
+                // Display the appointment date prominently using the new display function
+                historyItem.innerHTML = `
+                    <span style="font-weight: 700; color: var(--primary-dark-blue);">
+                        ${displayFormattedDate(item.appointmentDateTime)}
+                    </span>
+                    <br>
+                    Booked On: ${item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                `;
+                historyEntriesList.appendChild(historyItem);
             });
 
             renderPaginationControls(totalPages, contact);
@@ -460,6 +635,7 @@
 
                 const pageInfo = document.createElement('span');
                 pageInfo.textContent = ` Page ${currentHistoryPage} of ${totalPages} `;
+                pageInfo.style.margin = '0 10px';
 
                 const nextBtn = document.createElement('button');
                 nextBtn.textContent = 'Next »';
@@ -474,6 +650,111 @@
                 paginationContainer.appendChild(nextBtn);
             }
         }
+        
+        // =============================================================
+        // INITIALIZATION AND AUTH GATE
+        // =============================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('appointment-form');
+            
+            // --- A. Handle Auth Submissions ---
+            
+            // Login Handler
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    alert(`Login Failed: ${error.message}`);
+                }
+            });
+
+            // Logout Handler
+            logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                // Reset flag after logout
+                listenersActive = false; 
+            });
+            
+            // --- B. The Authentication Gate (Controls UI visibility and data syncing) ---
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // Logged In
+                    userStatus.textContent = `Status: Logged in as ${user.email}`;
+                    loginForm.style.display = 'none';
+                    logoutBtn.style.display = 'inline';
+                    appMainContent.style.display = 'flex'; // Show the app (Flex layout)
+                    
+                    setupGlobalListeners(); 
+
+                } else {
+                    // Logged Out
+                    userStatus.textContent = 'Status: Logged Out (Access Restricted)';
+                    // Ensure login form shows up correctly on small screens
+                    loginForm.style.display = window.innerWidth > 1024 ? 'flex' : 'block';
+                    logoutBtn.style.display = 'none';
+                    appMainContent.style.display = 'none'; // Hide the app
+                    
+                    // Display initial messages
+                    document.querySelector('#todays-appointments .appointment-list').innerHTML = '<li>Please log in to load real-time appointments.</li>';
+                    document.querySelector('#all-patients-history .history-list').innerHTML = '<li>Please log in to load all history.</li>';
+                    historyPlaceholder.textContent = 'Waiting for login...';
+                    historyEntriesList.innerHTML = '';
+                    document.querySelector('.pagination-controls').innerHTML = '';
+                }
+            });
+            
+            // --- C. Link Form & Input Handlers ---
+            form.addEventListener('submit', handleAppointmentSubmission);
+
+            // AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS (CRITICAL UX IMPROVEMENT)
+            contactInput.addEventListener('input', (event) => {
+                const contactNumber = event.target.value;
+                
+                if (!auth.currentUser) {
+                    historyPlaceholder.textContent = 'Please log in to search history.';
+                    return;
+                }
+
+                if (contactNumber.length === 11 && /^\d{11}$/.test(contactNumber)) {
+                    historyPlaceholder.textContent = 'Searching database...';
+
+                    // 3. Current Patient History Listener
+                    const patientQuery = query(
+                        collection(db, APPOINTMENTS_COLLECTION),
+                        where('contactNumber', '==', contactNumber),
+                        orderBy('createdAt', 'desc'),
+                        limit(25)
+                    );
+                    
+                    onSnapshot(patientQuery, (snapshot) => {
+                        const historyData = snapshot.docs.map(doc => ({ 
+                            id: doc.id, 
+                            ...doc.data() 
+                        }));
+                        
+                        if (historyData.length > 0) {
+                            historyPlaceholder.textContent = `Found ${historyData.length} previous entries.`;
+                            currentHistoryPage = 1; // Reset to page 1 for new search
+                            renderPatientHistory(historyData, contactNumber);
+                        } else {
+                            historyPlaceholder.textContent = `No previous history found for ${contactNumber}.`;
+                            historyEntriesList.innerHTML = '';
+                            document.querySelector('.pagination-controls').innerHTML = '';
+                        }
+                    });
+                } else {
+                    historyPlaceholder.textContent = 'Enter a complete 11-digit number to search.';
+                    historyEntriesList.innerHTML = '';
+                    document.querySelector('.pagination-controls').innerHTML = '';
+                }
+            });
+        });
+        
     </script>
 </body>
 </html>
+
