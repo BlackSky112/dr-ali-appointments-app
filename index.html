@@ -163,29 +163,26 @@
             outline: none;
         }
 
-        /* --- ENHANCED SUBMIT BUTTON STYLE --- */
+        /* --- SUBMIT BUTTON STYLE --- */
         .submit-btn {
-            /* Primary Color Scheme */
             background: var(--primary-dark-blue); 
             background: linear-gradient(135deg, var(--primary-dark-blue) 0%, #3b82f6 100%);
             color: white;
-            padding: 18px 25px; /* Slightly larger padding */
+            padding: 18px 25px; 
             border: none;
             border-radius: var(--radius);
             cursor: pointer;
-            font-size: 1.2rem; /* Larger font */
-            font-weight: 800; /* Bolder text */
+            font-size: 1.2rem; 
+            font-weight: 800; 
             width: 100%;
             transition: all 0.3s ease;
-            margin-top: 25px; /* More space above */
-            /* Prominent Shadow */
+            margin-top: 25px; 
             box-shadow: 0 6px 15px rgba(30, 64, 175, 0.5); 
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .submit-btn:hover {
-            /* Lighten slightly and increase shadow on hover */
             background: linear-gradient(135deg, #3b82f6 0%, var(--primary-dark-blue) 100%);
             box-shadow: 0 8px 20px rgba(30, 64, 175, 0.7);
             transform: translateY(-2px);
@@ -215,6 +212,43 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             font-size: 0.95rem;
             word-wrap: break-word;
+            /* Ensure list content and button are spaced */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Style for the text content within the list item */
+        .appointment-list li span, .history-list li span {
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        /* DELETE BUTTON STYLES */
+        .delete-btn {
+            background-color: var(--required-red); /* Red */
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            width: 80px; /* Fixed width for consistency */
+        }
+        .delete-btn:hover:not(.confirm) {
+            background-color: #c82333;
+        }
+        /* Confirmation state style (Yellow warning) */
+        .delete-btn.confirm {
+            background-color: var(--accent-yellow); 
+            color: var(--text-dark);
+            font-weight: 700;
+            box-shadow: 0 0 5px rgba(252, 211, 77, 0.8);
+        }
+        .delete-btn.confirm:hover {
+            background-color: #fbbf24;
         }
 
         /* History Sidebar Specific Styles */
@@ -223,10 +257,6 @@
             border: 1px dashed var(--primary-dark-blue);
             border-radius: var(--radius);
             background: white;
-        }
-        #current-patient-history p {
-            font-style: italic;
-            color: #6b7280;
         }
         /* Style for the Total Entries count display */
         #current-patient-history > p:first-of-type {
@@ -414,10 +444,12 @@
             where, 
             orderBy, 
             limit, 
-            onSnapshot 
+            onSnapshot,
+            deleteDoc, // <<< Added for deletion
+            doc // <<< Added to reference a document for deletion
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
         
-        // NEW: Import Authentication functions
+        // Import Authentication functions
         import { 
             getAuth, 
             signInWithEmailAndPassword, 
@@ -426,7 +458,7 @@
         } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
 
-        // Your web app's Firebase configuration (STRICTLY REQUIRED FOR FUNCTIONALITY)
+        // Your web app's Firebase configuration 
         const firebaseConfig = {
             apiKey: "AIzaSyDIHjU-N5d_5uVIN0K4qDnTc1O1HCEY_1M",
             authDomain: "dr-ali-appointments.firebaseapp.com",
@@ -452,11 +484,10 @@
         const appMainContent = document.getElementById('app-main-content');
         
         const contactInput = document.getElementById('contact-number');
-        // Select the paragraph element to display status/count
         const historyStatusElement = document.querySelector('#current-patient-history > p:first-of-type');
         const historyEntriesList = document.querySelector('.history-entries');
 
-        // Pagination settings (Changed to 4 per page)
+        // Pagination settings
         const entriesPerPage = 4;
         let currentHistoryPage = 1;
         let currentHistoryData = [];
@@ -464,8 +495,6 @@
 
         /**
          * Extracts the date part (YYYY-MM-DD) from the ISO 8601 string (YYYY-MM-DDTHH:MM).
-         * @param {string} isoString The ISO 8601 string from datetime-local input.
-         * @returns {string} The date part (YYYY-MM-DD).
          */
         function getISODatePart(isoString) {
             if (!isoString) return '';
@@ -473,29 +502,21 @@
         }
 
         /**
-         * Converts the ISO string (from datetime-local input) into the user-requested display format.
-         * Format: 12-September-2025 (Thursday) at 12:00 PM
-         * @param {string} isoString The ISO 8601 string (YYYY-MM-DDTHH:MM).
-         * @returns {string} The formatted date string.
+         * Converts the ISO string into the display format: DD-Month-YYYY (Day) at HH:MM AM/PM
          */
         function displayFormattedDate(isoString) {
             if (!isoString) return 'N/A';
             try {
-                // Parse date with the T as Z (UTC) to avoid local timezone shifts during comparison 
-                // However, since we are using date time local, we parse it directly.
                 const date = new Date(isoString);
-                if (isNaN(date.getTime())) return isoString; // Fallback if invalid date
+                if (isNaN(date.getTime())) return isoString; 
                 
                 const dayOptions = { weekday: 'long' };
                 const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
 
                 const dayName = date.toLocaleDateString('en-US', dayOptions);
-                
-                // Format date part manually to match the DD-Month-YYYY structure
                 const day = date.getDate().toString().padStart(2, '0');
                 const month = date.toLocaleDateString('en-US', { month: 'long' });
                 const year = date.getFullYear();
-
                 const timePart = date.toLocaleTimeString('en-US', timeOptions);
 
                 return `${day}-${month}-${year} (${dayName}) at ${timePart}`;
@@ -510,11 +531,28 @@
         // FIREBASE INTERACTION LOGIC
         // =============================================================
 
+        // Function to handle appointment deletion
+        async function deleteAppointment(docId, patientName) {
+            if (!auth.currentUser) {
+                console.error("Permission Denied: Must be logged in to delete appointments.");
+                return;
+            }
+            
+            try {
+                const docRef = doc(db, APPOINTMENTS_COLLECTION, docId);
+                await deleteDoc(docRef);
+                console.log(`Successfully deleted appointment for ${patientName} (${docId})`);
+                
+            } catch (error) {
+                console.error(`Error deleting document ${docId}: `, error);
+            }
+        }
+
         async function handleAppointmentSubmission(event) {
             event.preventDefault();
 
             if (!auth.currentUser) {
-                alert("Permission Denied: Please log in to book an appointment.");
+                console.error("Permission Denied: Please log in to book an appointment.");
                 return;
             }
 
@@ -524,30 +562,25 @@
             const data = {
                 patientName: form.elements['patient-name'].value,
                 contactNumber: contactNumber,
-                // Stores the ISO string from the datetime-local input (YYYY-MM-DDTHH:MM)
                 appointmentDateTime: form.elements['appointment-datetime'].value, 
                 createdAt: serverTimestamp() 
             };
 
-            // Client-side validation check (must match server rules)
             if (contactNumber.length !== 11 || !/^\d{11}$/.test(contactNumber)) {
-                alert('Error: Contact Number must be exactly 11 digits (0-9 only).');
+                console.error('Error: Contact Number must be exactly 11 digits (0-9 only).');
                 return;
             }
 
             try {
                 await addDoc(collection(db, APPOINTMENTS_COLLECTION), data);
-                
-                alert(`Appointment for ${data.patientName} booked successfully!`);
+                console.log(`Appointment for ${data.patientName} booked successfully!`);
                 form.reset();
-                // Reset history view
                 historyStatusElement.textContent = 'History cleared, waiting for new 11-digit number...';
                 historyEntriesList.innerHTML = '';
                 document.querySelector('.pagination-controls').innerHTML = '';
                 
             } catch (error) {
                 console.error("Error writing document: ", error);
-                alert(`Booking failed. Check console for error details (likely a permission denied if not logged in).`);
             }
         }
         
@@ -567,18 +600,16 @@
                 year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' 
             });
 
-            // --- 1. Today's Appointments Listener (FIXED LOGIC) ---
+            // --- 1. Today's Appointments Listener ---
             const todaysQuery = query(
                 collection(db, APPOINTMENTS_COLLECTION),
-                orderBy('createdAt', 'desc') // Order by creation time
+                orderBy('createdAt', 'desc') 
             );
             
             onSnapshot(todaysQuery, (snapshot) => {
                 todaysList.innerHTML = '';
                 let appointmentsToday = 0;
                 
-                // Get today's date in YYYY-MM-DD format (local time zone)
-                // Use the new Date() object and slice the ISO string to get just the date part.
                 const todayISODate = getISODatePart(new Date().toISOString()); 
 
                 snapshot.forEach((doc) => {
@@ -590,7 +621,13 @@
                     if (appointmentISODate === todayISODate) { 
                         const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime);
                         const listItem = document.createElement('li');
-                        listItem.textContent = `${apptDateDisplay} - ${appt.patientName} (${appt.contactNumber})`;
+                        
+                        // Add appointment details and the delete button HTML
+                        listItem.innerHTML = `
+                            <span>${apptDateDisplay} - ${appt.patientName} (${appt.contactNumber})</span>
+                            <button class="delete-btn" data-id="${doc.id}" data-name="${appt.patientName}">Delete</button>
+                        `;
+
                         todaysList.appendChild(listItem);
                         appointmentsToday++;
                     }
@@ -612,13 +649,15 @@
                 allHistoryList.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const appt = doc.data();
-                    // Booking timestamp is used for when the appointment was created
-                    const bookingTimestamp = appt.createdAt ? dateFormatter.format(appt.createdAt.toDate()) : 'N/A';
-                    // Appt date display is for the actual scheduled time
                     const apptDateDisplay = displayFormattedDate(appt.appointmentDateTime); 
                     
                     const listItem = document.createElement('li');
-                    listItem.textContent = `Appt: ${apptDateDisplay} | Patient: ${appt.patientName} (${appt.contactNumber})`;
+                    
+                    // Add details and the delete button HTML
+                    listItem.innerHTML = `
+                        <span>Appt: ${apptDateDisplay} | Patient: ${appt.patientName} (${appt.contactNumber})</span>
+                        <button class="delete-btn" data-id="${doc.id}" data-name="${appt.patientName}">Delete</button>
+                    `;
                     allHistoryList.appendChild(listItem);
                 });
             });
@@ -646,7 +685,7 @@
 
             entriesToShow.forEach(item => {
                 const historyItem = document.createElement('li');
-                // Display the appointment date prominently using the new display function
+                // Note: We intentionally do NOT add the delete button here as history records are generally immutable.
                 historyItem.innerHTML = `
                     <span style="font-weight: 700; color: var(--primary-dark-blue);">
                         ${displayFormattedDate(item.appointmentDateTime)}
@@ -697,8 +736,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('appointment-form');
+            const mainContentDiv = document.querySelector('.main-content');
             
-            // --- A. Handle Auth Submissions ---
+            // --- A. Handle Auth & Form Submissions ---
             
             // Login Handler
             loginForm.addEventListener('submit', async (e) => {
@@ -708,37 +748,67 @@
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
                 } catch (error) {
-                    alert(`Login Failed: ${error.message}`);
+                    console.error(`Login Failed: ${error.message}`);
                 }
             });
 
             // Logout Handler
             logoutBtn.addEventListener('click', async () => {
                 await signOut(auth);
-                // Reset flag after logout
                 listenersActive = false; 
             });
             
-            // --- B. The Authentication Gate (Controls UI visibility and data syncing) ---
+            // Link Booking Form Handler
+            form.addEventListener('submit', handleAppointmentSubmission);
+
+            // --- B. Delegated Click Handler for Delete Buttons (Confirmation Pattern) ---
+            mainContentDiv.addEventListener('click', (e) => {
+                if (e.target && e.target.matches('.delete-btn')) {
+                    const btn = e.target;
+                    const docId = btn.getAttribute('data-id');
+                    const patientName = btn.getAttribute('data-name');
+
+                    if (btn.classList.contains('confirm')) {
+                        // SECOND CLICK: Execute deletion
+                        deleteAppointment(docId, patientName);
+                        // Visually indicate deletion is happening
+                        btn.textContent = 'Deleting...';
+                        btn.disabled = true;
+                    } else {
+                        // FIRST CLICK: Prompt confirmation
+                        btn.classList.add('confirm');
+                        btn.textContent = 'Confirm Delete?';
+                        
+                        // Revert after 3 seconds if no second click
+                        setTimeout(() => {
+                            if (btn.classList.contains('confirm')) {
+                                btn.classList.remove('confirm');
+                                btn.textContent = 'Delete';
+                            }
+                        }, 3000);
+                    }
+                }
+            });
+
+            
+            // --- C. The Authentication Gate ---
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     // Logged In
                     userStatus.textContent = `Status: Logged in as ${user.email}`;
                     loginForm.style.display = 'none';
                     logoutBtn.style.display = 'inline';
-                    appMainContent.style.display = 'flex'; // Show the app (Flex layout)
+                    appMainContent.style.display = 'flex'; 
                     
                     setupGlobalListeners(); 
 
                 } else {
                     // Logged Out
                     userStatus.textContent = 'Status: Logged Out (Access Restricted)';
-                    // Ensure login form shows up correctly on small screens
                     loginForm.style.display = window.innerWidth > 1024 ? 'flex' : 'block';
                     logoutBtn.style.display = 'none';
-                    appMainContent.style.display = 'none'; // Hide the app
+                    appMainContent.style.display = 'none'; 
                     
-                    // Display initial messages
                     document.querySelector('#todays-appointments .appointment-list').innerHTML = '<li>Please log in to load real-time appointments.</li>';
                     document.querySelector('#all-patients-history .history-list').innerHTML = '<li>Please log in to load all history.</li>';
                     historyStatusElement.textContent = 'Waiting for login...';
@@ -747,10 +817,7 @@
                 }
             });
             
-            // --- C. Link Form & Input Handlers ---
-            form.addEventListener('submit', handleAppointmentSubmission);
-
-            // AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS 
+            // --- D. AUTO-SEARCH HISTORY WHEN TYPING 11 DIGITS ---
             contactInput.addEventListener('input', (event) => {
                 const contactNumber = event.target.value;
                 
@@ -764,8 +831,6 @@
                     historyEntriesList.innerHTML = '';
                     document.querySelector('.pagination-controls').innerHTML = '';
 
-                    // 3. Current Patient History Listener
-                    // Note: We intentionally fetch more than 4 entries (up to 25) to enable client-side pagination.
                     const patientQuery = query(
                         collection(db, APPOINTMENTS_COLLECTION),
                         where('contactNumber', '==', contactNumber),
@@ -780,7 +845,7 @@
                         }));
                         
                         if (historyData.length > 0) {
-                            currentHistoryPage = 1; // Reset to page 1 for new search
+                            currentHistoryPage = 1; 
                             renderPatientHistory(historyData, contactNumber);
                         } else {
                             historyStatusElement.textContent = `No previous history found for ${contactNumber}.`;
